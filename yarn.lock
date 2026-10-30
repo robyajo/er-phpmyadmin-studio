@@ -527,6 +527,14 @@
     fs-extra "^10.0.0"
     which "^2.0.2"
 
+"@electron-forge/maker-base@8.0.1":
+  version "8.0.1"
+  resolved "https://registry.yarnpkg.com/@electron-forge/maker-base/-/maker-base-8.0.1.tgz#90f820e26462de3873ff526fe47423bc3f299ee5"
+  integrity sha512-DNuGxgICA8RisFlq1zfu1jUAPGsB/8DDM0pJd/iWlpMYtgDvJS4jc/QZVfnMDQopWIVlFaiYwsLzPApqkA9j1g==
+  dependencies:
+    "@electron-forge/shared-types" "8.0.1"
+    which "^6.0.0"
+
 "@electron-forge/maker-deb@^7.11.2":
   version "7.11.2"
   resolved "https://registry.npmjs.org/@electron-forge/maker-deb/-/maker-deb-7.11.2.tgz"
@@ -548,15 +556,15 @@
   optionalDependencies:
     electron-installer-dmg "^5.0.1"
 
-"@electron-forge/maker-rpm@^7.11.2":
-  version "7.11.2"
-  resolved "https://registry.npmjs.org/@electron-forge/maker-rpm/-/maker-rpm-7.11.2.tgz"
-  integrity sha512-BEj/DcW6bSpmOyKUa3UsOgT7Hm3ZuP0Wa6OuQEunjxeCWn7yoDTDtjuYA0xRvzk+T4NCyDO3RBGjy6nYNSPU2Q==
+"@electron-forge/maker-rpm@^8.0.1":
+  version "8.0.1"
+  resolved "https://registry.yarnpkg.com/@electron-forge/maker-rpm/-/maker-rpm-8.0.1.tgz#14e421004bcb6cb053e285f86e4614657a946d22"
+  integrity sha512-FAOUQeE3nzHfE0tE7vs2sWBDN1mspkpzoFQSJWk1qB3Qv9HF3iREYjzpV+AuGWe/zy0y5IK6mIx4GADdIlBaEg==
   dependencies:
-    "@electron-forge/maker-base" "7.11.2"
-    "@electron-forge/shared-types" "7.11.2"
+    "@electron-forge/maker-base" "8.0.1"
+    "@electron-forge/shared-types" "8.0.1"
   optionalDependencies:
-    electron-installer-redhat "^3.2.0"
+    electron-installer-redhat "^4.0.0"
 
 "@electron-forge/maker-squirrel@^7.11.2":
   version "7.11.2"
@@ -3401,7 +3409,7 @@ ansi-styles@^5.0.0:
   resolved "https://registry.npmjs.org/ansi-styles/-/ansi-styles-5.2.0.tgz"
   integrity sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==
 
-ansi-styles@^6.0.0, ansi-styles@^6.1.0, ansi-styles@^6.2.3:
+ansi-styles@^6.0.0, ansi-styles@^6.1.0, ansi-styles@^6.2.1, ansi-styles@^6.2.3:
   version "6.2.3"
   resolved "https://registry.npmjs.org/ansi-styles/-/ansi-styles-6.2.3.tgz"
   integrity sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==
@@ -3843,6 +3851,15 @@ cliui@^8.0.1:
     string-width "^4.2.0"
     strip-ansi "^6.0.1"
     wrap-ansi "^7.0.0"
+
+cliui@^9.0.1:
+  version "9.0.1"
+  resolved "https://registry.yarnpkg.com/cliui/-/cliui-9.0.1.tgz#6f7890f386f6f1f79953adc1f78dec46fcc2d291"
+  integrity sha512-k7ndgKhwoQveBL+/1tqGJYNz097I7WOvwbmmU2AR5+magtbjPWQTS1C5vzGkBC8Ym8UWRzfKUzUUqFLypY4Q+w==
+  dependencies:
+    string-width "^7.2.0"
+    strip-ansi "^7.1.0"
+    wrap-ansi "^9.0.0"
 
 clone-response@^1.0.2:
   version "1.0.3"
@@ -4333,7 +4350,7 @@ electron-devtools-installer@^4.0.0:
   dependencies:
     unzip-crx-3 "^0.2.0"
 
-electron-installer-common@^0.10.2:
+electron-installer-common@^0.10.2, electron-installer-common@^0.10.3:
   version "0.10.4"
   resolved "https://registry.npmjs.org/electron-installer-common/-/electron-installer-common-0.10.4.tgz"
   integrity sha512-8gMNPXfAqUE5CfXg8RL0vXpLE9HAaPkgLXVoHE3BMUzogMWenf4LmwQ27BdCUrEhkjrKl+igs2IHJibclR3z3Q==
@@ -4375,18 +4392,17 @@ electron-installer-dmg@^5.0.1:
   optionalDependencies:
     appdmg "^0.6.4"
 
-electron-installer-redhat@^3.2.0:
-  version "3.4.0"
-  resolved "https://registry.npmjs.org/electron-installer-redhat/-/electron-installer-redhat-3.4.0.tgz"
-  integrity sha512-gEISr3U32Sgtj+fjxUAlSDo3wyGGq6OBx7rF5UdpIgbnpUvMN4W5uYb0ThpnAZ42VEJh/3aODQXHbFS4f5J3Iw==
+electron-installer-redhat@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/electron-installer-redhat/-/electron-installer-redhat-4.0.0.tgz#4369c0bae1c6ac8cba065183d5c4d91b3af44786"
+  integrity sha512-ZTwRR2akAxD/K1S5GMdRnG/o/YfMww5CeWt+dDLZ9qCrybVw0YW3vHEoyvz+udztXZDpUCy12fwMmy8mUlpjCQ==
   dependencies:
-    "@malept/cross-spawn-promise" "^1.0.0"
+    "@malept/cross-spawn-promise" "^2.0.0"
     debug "^4.1.1"
-    electron-installer-common "^0.10.2"
-    fs-extra "^9.0.0"
-    lodash "^4.17.15"
-    word-wrap "^1.2.3"
-    yargs "^16.0.2"
+    electron-installer-common "^0.10.3"
+    which "^5.0.0"
+    word-wrap "^1.2.4"
+    yargs "^18.0.0"
 
 electron-playwright-helpers@^3.1.2:
   version "3.1.2"
@@ -7770,7 +7786,7 @@ string-width@^5.0.0, string-width@^5.0.1:
     emoji-regex "^9.2.2"
     strip-ansi "^7.0.1"
 
-string-width@^7.2.0:
+string-width@^7.0.0, string-width@^7.2.0:
   version "7.2.0"
   resolved "https://registry.npmjs.org/string-width/-/string-width-7.2.0.tgz"
   integrity sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ==
@@ -7779,7 +7795,7 @@ string-width@^7.2.0:
     get-east-asian-width "^1.0.0"
     strip-ansi "^7.1.0"
 
-string-width@^8.2.0, string-width@^8.3.0:
+string-width@^8.2.0, string-width@^8.2.1, string-width@^8.3.0:
   version "8.3.0"
   resolved "https://registry.npmjs.org/string-width/-/string-width-8.3.0.tgz"
   integrity sha512-ZbmZM0JCihQN91dWnxoipT2KOEyHqEyfRXUyjuRhW8b/xnqPDoq4gWEVApTVa9db2wN8mmoikgFBbjh71+cGeQ==
@@ -8555,6 +8571,13 @@ which@^4.0.0:
   dependencies:
     isexe "^3.1.1"
 
+which@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/which/-/which-5.0.0.tgz#d93f2d93f79834d4363c7d0c23e00d07c466c8d6"
+  integrity sha512-JEdGzHwwkrbWoGOlIHqQ5gtprKGOenpDHpxE9zVR1bWbOtYRyPPHMe9FaP6x61CmNaTThSkb0DAJte5jD+DmzQ==
+  dependencies:
+    isexe "^3.1.1"
+
 which@^6.0.0:
   version "6.0.1"
   resolved "https://registry.npmjs.org/which/-/which-6.0.1.tgz"
@@ -8567,7 +8590,7 @@ why-is-node-running@3.2.1:
   resolved "https://registry.npmjs.org/why-is-node-running/-/why-is-node-running-3.2.1.tgz"
   integrity sha512-Tb2FUhB4vUsGQlfSquQLYkApkuPAFQXGFzxWKHHumVz2dK+X1RUm/HnID4+TfIGYJ1kTcwOaCk/buYCEJr6YjQ==
 
-word-wrap@^1.2.3:
+word-wrap@^1.2.3, word-wrap@^1.2.4:
   version "1.2.5"
   resolved "https://registry.npmjs.org/word-wrap/-/word-wrap-1.2.5.tgz"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
@@ -8606,6 +8629,15 @@ wrap-ansi@^8.0.1, wrap-ansi@^8.1.0:
     ansi-styles "^6.1.0"
     string-width "^5.0.1"
     strip-ansi "^7.0.1"
+
+wrap-ansi@^9.0.0:
+  version "9.0.2"
+  resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-9.0.2.tgz#956832dea9494306e6d209eb871643bb873d7c98"
+  integrity sha512-42AtmgqjV+X1VpdOfyTGOYRi0/zsoLqtXQckTmqTeybT+BDIbM/Guxo7x3pE2vtpr1ok6xRqM9OpBe+Jyoqyww==
+  dependencies:
+    ansi-styles "^6.2.1"
+    string-width "^7.0.0"
+    strip-ansi "^7.1.0"
 
 wrappy@1:
   version "1.0.2"
@@ -8710,6 +8742,18 @@ yargs@^17.0.1:
     string-width "^4.2.3"
     y18n "^5.0.5"
     yargs-parser "^21.1.1"
+
+yargs@^18.0.0:
+  version "18.2.0"
+  resolved "https://registry.yarnpkg.com/yargs/-/yargs-18.2.0.tgz#c258276baa935fe8fb911d986067f6d0733e8608"
+  integrity sha512-9OpKOLeaoNFecEp7P6iYbzze/5CqWoH7N3SMs/6y1XF4nMvFMspEGZzJ6uFi9MmQwXhyzqYoSEKO3tvA3Z/o2w==
+  dependencies:
+    cliui "^9.0.1"
+    escalade "^3.1.1"
+    get-caller-file "^2.0.5"
+    string-width "^8.2.1"
+    y18n "^5.0.5"
+    yargs-parser "^22.0.0"
 
 yauzl@^2.10.0:
   version "2.10.0"
