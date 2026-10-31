@@ -1,3 +1,4 @@
+import { InsertTab } from "@/components/workspace/tabs/insert-tab";
 import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ConnectionGrid } from "@/components/workspace/connection/connection-grid";
@@ -12,6 +13,12 @@ import { RoutinesTab } from "@/components/workspace/tabs/routines-tab";
 import { SearchTab } from "@/components/workspace/tabs/search-tab";
 import { WorkspaceHeader } from "@/components/workspace/workspace-header";
 import { WorkspaceNav } from "@/components/workspace/workspace-nav";
+import { StructureTab } from "@/components/workspace/tabs/structure-tab";
+import { BrowseTab } from "@/components/workspace/tabs/browse-tab";
+import { EditRowModal } from "@/components/workspace/modals/edit-row-modal";
+import { ExplainSqlModal } from "@/components/workspace/modals/explain-sql-modal";
+import { CreatePhpCodeModal } from "@/components/workspace/modals/create-php-code-modal";
+import { CreateViewModal } from "@/components/workspace/modals/create-view-modal";
 
 const DELETE_HOST_REGEX = /Hapus koneksi/i;
 
@@ -201,6 +208,36 @@ describe("Workspace Components", () => {
     expect(getByText("Passphrase Kunci Privat (Opsional)")).toBeInTheDocument();
   });
 
+  it("renders ConnectionInspector correctly in isCreatingNew draft mode", () => {
+    const { getByText } = render(
+      <ConnectionInspector
+        diagnostics={null}
+        editForm={INITIAL_PROFILES[0]}
+        isCreatingNew={true}
+        isOpen={true}
+        isTesting={false}
+        onClose={vi.fn()}
+        onConnect={vi.fn()}
+        onInspectSshKey={vi.fn()}
+        onSaveProfile={vi.fn()}
+        onTestConnection={vi.fn()}
+        passwordAction="replace"
+        passwordInput=""
+        setEditForm={vi.fn()}
+        setPasswordAction={vi.fn()}
+        setPasswordInput={vi.fn()}
+        setShowPassword={vi.fn()}
+        setShowSshPassword={vi.fn()}
+        showPassword={false}
+        showSshPassword={false}
+      />
+    );
+
+    expect(getByText("Buat Koneksi Baru")).toBeInTheDocument();
+    expect(getByText("Draft Baru")).toBeInTheDocument();
+    expect(getByText("Simpan ke Daftar")).toBeInTheDocument();
+  });
+
   it("renders ExplorerSidebar correctly", () => {
     const { getByText, getAllByText } = render(
       <ExplorerSidebar
@@ -380,5 +417,228 @@ describe("Workspace Components", () => {
       getByText("Pemicu Database / Triggers (1)")
     ).toBeInTheDocument();
     expect(getByText("CalculateTotal")).toBeInTheDocument();
+  });
+
+  it("renders StructureTab with phpMyAdmin style filters, action buttons, and overhead", () => {
+    const { getByText, getAllByText, getByPlaceholderText } = render(
+      <StructureTab
+        bulkAction="empty"
+        currentSelectedDatabase="db_camp"
+        filteredDisplayTables={[
+          {
+            collation: "utf8mb4_unicode_ci",
+            dataFree: 16384,
+            dataLength: 16384,
+            engine: "InnoDB",
+            name: "cache",
+            rows: 10,
+            size: "16.0 KiB",
+          },
+        ]}
+        isCreatingTable={false}
+        newTableColumnsInput={4}
+        newTableNameInput=""
+        onBrowseTable={vi.fn()}
+        onCreateTable={vi.fn()}
+        onDropTable={vi.fn()}
+        onEmptyTable={vi.fn()}
+        onExecuteBulkAction={vi.fn()}
+        onOpenInsertModal={vi.fn()}
+        onRefreshTables={vi.fn()}
+        onSwitchTab={vi.fn()}
+        onViewTableStructure={vi.fn()}
+        selectedTableCheckboxes={[]}
+        setBulkAction={vi.fn()}
+        setNewTableColumnsInput={vi.fn()}
+        setNewTableNameInput={vi.fn()}
+        setSelectedTableCheckboxes={vi.fn()}
+        setTableSearch={vi.fn()}
+        tableSearch=""
+        totalDatabaseRows={10}
+      />
+    );
+
+    expect(getByText("Filters")).toBeInTheDocument();
+    expect(getByText("Containing the word:")).toBeInTheDocument();
+    expect(getByText("cache")).toBeInTheDocument();
+    expect(getByText("Browse")).toBeInTheDocument();
+    expect(getByText("Structure")).toBeInTheDocument();
+    expect(getByText("Search")).toBeInTheDocument();
+    expect(getByText("Insert")).toBeInTheDocument();
+    expect(getByText("Empty")).toBeInTheDocument();
+    expect(getByText("Drop")).toBeInTheDocument();
+    expect(getAllByText("16.0 KiB").length).toBeGreaterThan(0);
+    expect(getByText("1 tables")).toBeInTheDocument();
+  });
+
+  it("renders BrowseTab with query banner, inline actions, row actions, and results operations", () => {
+    const { getByText } = render(
+      <BrowseTab
+        currentSelectedDatabase="db_hono_api"
+        isExecutingQuery={false}
+        onCopyRow={vi.fn()}
+        onCreatePhpCode={vi.fn()}
+        onCreateView={vi.fn()}
+        onDeleteRow={vi.fn()}
+        onDeleteSelectedRows={vi.fn()}
+        onDisplayChart={vi.fn()}
+        onEditRow={vi.fn()}
+        onExecuteQuery={vi.fn()}
+        onExplainSql={vi.fn()}
+        onExportCurrentResults={vi.fn()}
+        onOpenInsertModal={vi.fn()}
+        onPrintResults={vi.fn()}
+        onSwitchToSqlTab={vi.fn()}
+        queryResults={{
+          columns: ["id", "name", "email", "role"],
+          executionTimeMs: 0.1,
+          ok: true,
+          rowCount: 2,
+          rows: [
+            { id: "1", name: "Admin", email: "admin@gmail.com", role: "ADMIN" },
+            { id: "2", name: "User", email: "user@gmail.com", role: "USER" },
+          ],
+        }}
+        selectedTable="user"
+        setSqlQuery={vi.fn()}
+        sqlQuery="SELECT * FROM `user`"
+      />
+    );
+
+    expect(getByText(/Showing rows 0 - 1/i)).toBeInTheDocument();
+    expect(getByText("Edit inline")).toBeInTheDocument();
+    expect(getByText("Explain SQL")).toBeInTheDocument();
+    expect(getByText("Create PHP code")).toBeInTheDocument();
+    expect(getByText("Show all")).toBeInTheDocument();
+    expect(getByText("Number of rows:")).toBeInTheDocument();
+    expect(getByText("Filter rows:")).toBeInTheDocument();
+    expect(getByText("Sort by key:")).toBeInTheDocument();
+    expect(getByText("Extra options")).toBeInTheDocument();
+    expect(getByText("Admin")).toBeInTheDocument();
+    expect(getByText("admin@gmail.com")).toBeInTheDocument();
+    expect(getByText("Query results operations")).toBeInTheDocument();
+    expect(getByText("Print")).toBeInTheDocument();
+    expect(getByText("Copy to clipboard")).toBeInTheDocument();
+    expect(getByText("Display chart")).toBeInTheDocument();
+    expect(getByText("Create view")).toBeInTheDocument();
+  });
+
+  it("renders EditRowModal, ExplainSqlModal, CreatePhpCodeModal, and CreateViewModal", () => {
+    const { getByText } = render(
+      <>
+        <EditRowModal
+          currentSelectedDatabase="db_hono_api"
+          isSaving={false}
+          isOpen={true}
+          onClose={vi.fn()}
+          onSaveRow={vi.fn()}
+          rowToEdit={{ id: 1, name: "Test" }}
+          selectedTable="user"
+          tableStructureColumns={[{ Field: "id", Type: "int", Null: "NO" }]}
+        />
+        <ExplainSqlModal
+          explainData={{
+            columns: ["id", "select_type", "table"],
+            rows: [{ id: 1, select_type: "SIMPLE", table: "user" }],
+          }}
+          isLoading={false}
+          isOpen={true}
+          onClose={vi.fn()}
+          query="SELECT * FROM user"
+        />
+        <CreatePhpCodeModal
+          currentSelectedDatabase="db_hono_api"
+          isOpen={true}
+          onClose={vi.fn()}
+          query="SELECT * FROM user"
+        />
+        <CreateViewModal
+          currentSelectedDatabase="db_hono_api"
+          isCreating={false}
+          isOpen={true}
+          onClose={vi.fn()}
+          onCreateView={vi.fn()}
+          sqlQuery="SELECT * FROM user"
+        />
+      </>
+    );
+
+    expect(getByText(/Edit Baris Data/i)).toBeInTheDocument();
+    expect(getByText(/Rencana Eksekusi Query/i)).toBeInTheDocument();
+    expect(getByText(/Buat Kode PHP/i)).toBeInTheDocument();
+    expect(getByText(/Buat View Baru/i)).toBeInTheDocument();
+  });
+
+  it("renders InsertTab in edit, copy, and insert modes matching phpMyAdmin dedicated view", () => {
+    const handleSave = vi.fn();
+    const handleCancel = vi.fn();
+    const mockColumns = [
+      { Field: "id", Type: "varchar(36)", Null: "NO", Key: "PRI", Default: null, Extra: "" },
+      { Field: "name", Type: "varchar(255)", Null: "NO", Key: "", Default: null, Extra: "" },
+      { Field: "email", Type: "varchar(255)", Null: "NO", Key: "UNI", Default: null, Extra: "" },
+    ];
+
+    const { getByText, getByDisplayValue, rerender } = render(
+      <InsertTab
+        currentSelectedDatabase="db_hono_api"
+        initialValues={{ id: "123", name: "Admin Test", email: "admin@test.com" }}
+        isSaving={false}
+        mode="edit"
+        onCancel={handleCancel}
+        onSave={handleSave}
+        originalRow={{ id: "123", name: "Admin Test", email: "admin@test.com" }}
+        selectedTable="user"
+        tableStructureColumns={mockColumns}
+      />
+    );
+
+    // Edit mode assertions
+    expect(getByText(/Ubah baris di tabel `user`/i)).toBeInTheDocument();
+    expect(getByText(/Mode Edit \(UPDATE\)/i)).toBeInTheDocument();
+    expect(getByDisplayValue("Admin Test")).toBeInTheDocument();
+    expect(getByDisplayValue("admin@test.com")).toBeInTheDocument();
+    expect(getByText("Kirim (Go)")).toBeInTheDocument();
+    expect(getByText("Kembali ke Jelajahi (Browse)")).toBeInTheDocument();
+
+    // Trigger cancel
+    fireEvent.click(getByText("Kembali ke Jelajahi (Browse)"));
+    expect(handleCancel).toHaveBeenCalled();
+
+    // Trigger submit
+    fireEvent.click(getByText("Kirim (Go)"));
+    expect(handleSave).toHaveBeenCalled();
+
+    // Rerender in copy mode
+    rerender(
+      <InsertTab
+        currentSelectedDatabase="db_hono_api"
+        initialValues={{ id: "123", name: "Admin Test", email: "admin@test.com" }}
+        isSaving={false}
+        mode="copy"
+        onCancel={handleCancel}
+        onSave={handleSave}
+        originalRow={{ id: "123", name: "Admin Test", email: "admin@test.com" }}
+        selectedTable="user"
+        tableStructureColumns={mockColumns}
+      />
+    );
+    expect(getByText(/Salin & Sisipkan baris ke tabel `user`/i)).toBeInTheDocument();
+    expect(getByText(/Mode Duplikasi \(INSERT COPY\)/i)).toBeInTheDocument();
+
+    // Rerender in insert mode
+    rerender(
+      <InsertTab
+        currentSelectedDatabase="db_hono_api"
+        initialValues={{}}
+        isSaving={false}
+        mode="insert"
+        onCancel={handleCancel}
+        onSave={handleSave}
+        selectedTable="user"
+        tableStructureColumns={mockColumns}
+      />
+    );
+    expect(getByText(/Sisipkan baris baru ke tabel `user`/i)).toBeInTheDocument();
+    expect(getByText(/Mode Baru \(INSERT\)/i)).toBeInTheDocument();
   });
 });

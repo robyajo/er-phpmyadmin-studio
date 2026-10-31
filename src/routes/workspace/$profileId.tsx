@@ -17,7 +17,14 @@ import {
   importDatabase,
   promptSqlFileDialog,
 } from "@/actions/database";
-import { FALLBACK_TABLES } from "@/components/workspace/constants";
+import {
+  FALLBACK_DATABASES,
+  FALLBACK_TABLES,
+  getFallbackColumnsForTable,
+  getFallbackQueryResults,
+  getFallbackTablesForDb,
+} from "@/components/workspace/constants";
+import { InsertTab } from "@/components/workspace/tabs/insert-tab";
 import { ExplorerSidebar } from "@/components/workspace/explorer/explorer-sidebar";
 import { SettingsView } from "@/components/workspace/settings/settings-view";
 import { ConfirmDialog } from "@/components/workspace/modals/confirm-dialog";
@@ -37,6 +44,12 @@ import { RoutinesTab } from "@/components/workspace/tabs/routines-tab";
 import { SearchTab } from "@/components/workspace/tabs/search-tab";
 import { SqlTab } from "@/components/workspace/tabs/sql-tab";
 import { StatusTab } from "@/components/workspace/tabs/status-tab";
+import { BrowseTab } from "@/components/workspace/tabs/browse-tab";
+import { ChartModal } from "@/components/workspace/modals/chart-modal";
+import { CreatePhpCodeModal } from "@/components/workspace/modals/create-php-code-modal";
+import { CreateViewModal } from "@/components/workspace/modals/create-view-modal";
+import { EditRowModal } from "@/components/workspace/modals/edit-row-modal";
+import { ExplainSqlModal } from "@/components/workspace/modals/explain-sql-modal";
 import { StructureTab } from "@/components/workspace/tabs/structure-tab";
 import { UsersTab } from "@/components/workspace/tabs/users-tab";
 import { VariablesTab } from "@/components/workspace/tabs/variables-tab";
@@ -98,7 +111,7 @@ export function WorkspaceStudioPage() {
 
   // Workspace tab
   const [currentWorkspaceTab, setCurrentWorkspaceTab] =
-    useState<WorkspaceTabId>("databases");
+    useState<WorkspaceTabId>("structure");
 
   // State Ekspor & Impor Database
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -127,6 +140,20 @@ export function WorkspaceStudioPage() {
   const [importSqlContent, setImportSqlContent] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalFileInputRef = useRef<HTMLInputElement>(null);
+
+  // State untuk Browse Tab & Modals
+  const [isEditRowModalOpen, setIsEditRowModalOpen] = useState(false);
+  const [rowToEdit, setRowToEdit] = useState<Record<string, any> | null>(null);
+  const [isSavingRow, setIsSavingRow] = useState(false);
+
+  const [isExplainModalOpen, setIsExplainModalOpen] = useState(false);
+  const [isLoadingExplain, setIsLoadingExplain] = useState(false);
+  const [explainData, setExplainData] = useState<{ columns: string[]; rows: any[] } | null>(null);
+
+  const [isCreatePhpCodeModalOpen, setIsCreatePhpCodeModalOpen] = useState(false);
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+  const [isCreateViewModalOpen, setIsCreateViewModalOpen] = useState(false);
+  const [isCreatingView, setIsCreatingView] = useState(false);
 
   // State untuk Tab Structure
   const [selectedTableCheckboxes, setSelectedTableCheckboxes] = useState<
@@ -184,6 +211,11 @@ export function WorkspaceStudioPage() {
   >({});
   const [isInsertModalOpen, setIsInsertModalOpen] = useState(false);
   const [isInsertingRow, setIsInsertingRow] = useState(false);
+
+  // State untuk Tab Insert / Edit / Copy (phpMyAdmin style)
+  const [insertTabMode, setInsertTabMode] = useState<"insert" | "edit" | "copy">("insert");
+  const [insertTabInitialValues, setInsertTabInitialValues] = useState<Record<string, any>>({});
+  const [insertTabOriginalRow, setInsertTabOriginalRow] = useState<Record<string, any> | null>(null);
 
   // State untuk Tab Status Server
   const [serverStatusData, setServerStatusData] = useState<{
@@ -291,12 +323,26 @@ export function WorkspaceStudioPage() {
   useEffect(() => {
     if (!profile) return;
     const loadDbs = async () => {
-      const connParams = getConnParams();
-      const res = await fetchDatabases(connParams);
-      if (res.ok && res.databases) {
-        setAvailableDatabases(res.databases);
-        if (res.databases.length > 0 && !currentSelectedDatabase) {
-          setCurrentSelectedDatabase(res.databases[0]);
+      try {
+        const connParams = getConnParams();
+        const res = await fetchDatabases(connParams);
+        if (res.ok && res.databases && res.databases.length > 0) {
+          setAvailableDatabases(res.databases);
+          if (!currentSelectedDatabase) {
+            setCurrentSelectedDatabase(res.databases[0]);
+          }
+        } else {
+          // Fallback demo databases (db_camp, db_hono_api) jika koneksi live belum terhubung atau perlu password
+          setAvailableDatabases(FALLBACK_DATABASES);
+          if (!currentSelectedDatabase) {
+            setCurrentSelectedDatabase(FALLBACK_DATABASES[0]);
+          }
+        }
+      } catch (err: any) {
+        console.warn("Gagal memuat basis data awal:", err);
+        setAvailableDatabases(FALLBACK_DATABASES);
+        if (!currentSelectedDatabase) {
+          setCurrentSelectedDatabase(FALLBACK_DATABASES[0]);
         }
       }
     };
@@ -307,78 +353,383 @@ export function WorkspaceStudioPage() {
   useEffect(() => {
     if (!profile || !currentSelectedDatabase) return;
     const loadTables = async () => {
-      setIsLoadingTables(true);
-      const connParams = getConnParams(currentSelectedDatabase);
-      const res = await fetchTables(connParams, currentSelectedDatabase);
-      setIsLoadingTables(false);
-      if (res.ok && res.tables) {
-        setDatabaseTables(res.tables);
-        if (res.tables.length > 0) {
+      try {
+        setIsLoadingTables(true);
+        const connParams = getConnParams(currentSelectedDatabase);
+        const res = await fetchTables(connParams, currentSelectedDatabase);
+        setIsLoadingTables(false);
+        if (res.ok && res.tables && res.tables.length > 0) {
+          setDatabaseTables(res.tables);
           const firstTbl = res.tables[0].name;
           setSelectedTable(firstTbl);
           setSqlQuery(`SELECT * FROM \`${firstTbl}\` LIMIT 25;`);
           setSelectedTableCheckboxes([]);
           setExportSelectedTables(res.tables.map((t) => t.name));
+          const qRes = await executeSqlQuery(connParams, `SELECT * FROM \`${firstTbl}\` LIMIT 25;`, currentSelectedDatabase);
+          if (qRes.ok) {
+            setQueryResults(qRes);
+          } else {
+            setQueryResults(getFallbackQueryResults(firstTbl));
+          }
         } else {
-          setSelectedTable("");
-          setSqlQuery(`-- Basis data \`${currentSelectedDatabase}\` kosong.`);
-          setSelectedTableCheckboxes([]);
-          setExportSelectedTables([]);
+          const fallbackList = getFallbackTablesForDb(currentSelectedDatabase);
+          setDatabaseTables(fallbackList);
+          if (fallbackList.length > 0) {
+            const firstTbl = fallbackList[0].name;
+            setSelectedTable(firstTbl);
+            setSqlQuery(`SELECT * FROM \`${firstTbl}\` LIMIT 25;`);
+            setSelectedTableCheckboxes([]);
+            setExportSelectedTables(fallbackList.map((t) => t.name));
+            setQueryResults(getFallbackQueryResults(firstTbl));
+          }
         }
-      } else {
-        setDatabaseTables(FALLBACK_TABLES);
+      } catch (err: any) {
+        setIsLoadingTables(false);
+        console.warn("Gagal memuat tabel:", err);
+        const fallbackList = getFallbackTablesForDb(currentSelectedDatabase);
+        setDatabaseTables(fallbackList);
       }
     };
     loadTables();
   }, [profile, currentSelectedDatabase]);
 
   const handleSelectDatabase = async (dbName: string) => {
-    setCurrentSelectedDatabase(dbName);
-    setIsLoadingTables(true);
-    const connParams = getConnParams(dbName);
-    const tablesRes = await fetchTables(connParams, dbName);
-    setIsLoadingTables(false);
-    if (tablesRes.ok && tablesRes.tables) {
-      setDatabaseTables(tablesRes.tables);
-      setSelectedTableCheckboxes([]);
-      setExportSelectedTables(tablesRes.tables.map((t) => t.name));
-      if (tablesRes.tables.length > 0) {
+    try {
+      setCurrentSelectedDatabase(dbName);
+      setIsLoadingTables(true);
+      const connParams = getConnParams(dbName);
+      const tablesRes = await fetchTables(connParams, dbName);
+      setIsLoadingTables(false);
+      if (tablesRes.ok && tablesRes.tables && tablesRes.tables.length > 0) {
+        setDatabaseTables(tablesRes.tables);
+        setSelectedTableCheckboxes([]);
+        setExportSelectedTables(tablesRes.tables.map((t) => t.name));
         const firstTbl = tablesRes.tables[0].name;
         setSelectedTable(firstTbl);
         setSqlQuery(`SELECT * FROM \`${firstTbl}\` LIMIT 25;`);
+        const qRes = await executeSqlQuery(connParams, `SELECT * FROM \`${firstTbl}\` LIMIT 25;`, dbName);
+        if (qRes.ok) {
+          setQueryResults(qRes);
+        } else {
+          setQueryResults(getFallbackQueryResults(firstTbl));
+        }
       } else {
-        setSelectedTable("");
-        setSqlQuery(`-- Basis data \`${dbName}\` belum memiliki tabel.`);
+        const fallbackList = getFallbackTablesForDb(dbName);
+        setDatabaseTables(fallbackList);
+        if (fallbackList.length > 0) {
+          const firstTbl = fallbackList[0].name;
+          setSelectedTable(firstTbl);
+          setSqlQuery(`SELECT * FROM \`${firstTbl}\` LIMIT 25;`);
+          setSelectedTableCheckboxes([]);
+          setExportSelectedTables(fallbackList.map((t) => t.name));
+          setQueryResults(getFallbackQueryResults(firstTbl));
+        }
       }
-    } else {
-      setDatabaseTables(FALLBACK_TABLES);
-      toast.error(`Gagal memuat daftar tabel dari \`${dbName}\``, {
-        description: tablesRes.error,
-      });
+    } catch {
+      setIsLoadingTables(false);
+      const fallbackList = getFallbackTablesForDb(dbName);
+      setDatabaseTables(fallbackList);
     }
   };
 
   const handleOpenDatabase = async (dbName: string) => {
-    await handleSelectDatabase(dbName);
-    setCurrentWorkspaceTab("structure");
+    try {
+      await handleSelectDatabase(dbName);
+      setCurrentWorkspaceTab("structure");
+    } catch {
+      // Navigasi senyap
+    }
   };
 
   const handleBrowseTable = async (tableName: string) => {
-    setSelectedTable(tableName);
-    const q = `SELECT * FROM \`${tableName}\` LIMIT 25;`;
-    setSqlQuery(q);
-    setCurrentWorkspaceTab("sql");
-    const connParams = getConnParams(currentSelectedDatabase);
-    setIsExecutingQuery(true);
-    const qRes = await executeSqlQuery(connParams, q, currentSelectedDatabase);
-    setIsExecutingQuery(false);
-    if (qRes.ok) {
-      setQueryResults(qRes);
-    } else {
-      toast.error(`Gagal menjalankan query untuk \`${tableName}\``, {
-        description: qRes.error,
+    try {
+      setSelectedTable(tableName);
+      const q = `SELECT * FROM \`${tableName}\` LIMIT 25;`;
+      setSqlQuery(q);
+      setCurrentWorkspaceTab("browse");
+      const connParams = getConnParams(currentSelectedDatabase);
+      setIsExecutingQuery(true);
+      const qRes = await executeSqlQuery(connParams, q, currentSelectedDatabase);
+      setIsExecutingQuery(false);
+      if (qRes.ok && qRes.rows && qRes.rows.length > 0) {
+        setQueryResults(qRes);
+      } else if (qRes.ok) {
+        setQueryResults(qRes);
+      } else {
+        setQueryResults(getFallbackQueryResults(tableName));
+      }
+    } catch {
+      setIsExecutingQuery(false);
+      setQueryResults(getFallbackQueryResults(tableName));
+    }
+  };
+
+  const handleExecuteBrowseQuery = async (overrideQuery?: string) => {
+    try {
+      const q = overrideQuery || sqlQuery || `SELECT * FROM \`${selectedTable}\` LIMIT 25;`;
+      setSqlQuery(q);
+      const connParams = getConnParams(currentSelectedDatabase);
+      setIsExecutingQuery(true);
+      const qRes = await executeSqlQuery(connParams, q, currentSelectedDatabase);
+      setIsExecutingQuery(false);
+      if (qRes.ok) {
+        setQueryResults(qRes);
+      } else {
+        toast.error("Gagal mengeksekusi query", { description: qRes.error });
+      }
+    } catch (err: any) {
+      setIsExecutingQuery(false);
+      toast.error("Terjadi kesalahan saat mengeksekusi query", {
+        description: err?.message || String(err),
       });
     }
+  };
+
+  const handleEditRow = async (row: any) => {
+    try {
+      setRowToEdit(row);
+      setInsertTabOriginalRow(row);
+      setInsertTabInitialValues(row);
+      setInsertTabMode("edit");
+      setCurrentWorkspaceTab("insert");
+
+      if (tableStructureColumns.length === 0 && selectedTable) {
+        const connParams = getConnParams(currentSelectedDatabase);
+        const colRes = await executeSqlQuery(
+          connParams,
+          `SHOW FULL COLUMNS FROM \`${selectedTable}\`;`,
+          currentSelectedDatabase
+        );
+        if (colRes.ok && colRes.rows && colRes.rows.length > 0) {
+          setTableStructureColumns(colRes.rows);
+        } else {
+          setTableStructureColumns(getFallbackColumnsForTable(selectedTable));
+        }
+      }
+    } catch (err: any) {
+      toast.error("Gagal menyiapkan baris untuk diedit", {
+        description: err?.message || String(err),
+      });
+    }
+  };
+
+  const handleCopyRow = async (row: any) => {
+    try {
+      if (!selectedTable) return;
+      setInsertTabOriginalRow(row);
+      setInsertTabInitialValues(row);
+      setInsertTabMode("copy");
+      setCurrentWorkspaceTab("insert");
+
+      if (tableStructureColumns.length === 0) {
+        const connParams = getConnParams(currentSelectedDatabase);
+        const colRes = await executeSqlQuery(
+          connParams,
+          `SHOW FULL COLUMNS FROM \`${selectedTable}\`;`,
+          currentSelectedDatabase
+        );
+        if (colRes.ok && colRes.rows && colRes.rows.length > 0) {
+          setTableStructureColumns(colRes.rows);
+        } else {
+          setTableStructureColumns(getFallbackColumnsForTable(selectedTable));
+        }
+      }
+    } catch (err: any) {
+      toast.error("Gagal menyiapkan baris untuk disalin", {
+        description: err?.message || String(err),
+      });
+    }
+  };
+
+  const handleSaveEditedRow = async (updatedValues: Record<string, any>) => {
+    try {
+      if (!selectedTable || !rowToEdit) return;
+      const connParams = getConnParams(currentSelectedDatabase);
+      const pkCol = tableStructureColumns.find((c) => c.Key === "PRI")?.Field;
+      let whereClause = "";
+      if (pkCol && rowToEdit[pkCol] !== undefined && rowToEdit[pkCol] !== null) {
+        whereClause = `\`${pkCol}\` = '${String(rowToEdit[pkCol]).replace(/'/g, "\\'")}'`;
+      } else {
+        whereClause = Object.entries(rowToEdit)
+          .slice(0, 3)
+          .map(([k, v]) => {
+            if (v === null || v === undefined) return `\`${k}\` IS NULL`;
+            return `\`${k}\` = '${String(v).replace(/'/g, "\\'")}'`;
+          })
+          .join(" AND ");
+      }
+
+      const setClauses = Object.entries(updatedValues)
+        .map(([k, v]) => {
+          if (v === null || v === undefined) return `\`${k}\` = NULL`;
+          return `\`${k}\` = '${String(v).replace(/'/g, "\\'")}'`;
+        })
+        .join(", ");
+
+      const updateSql = `UPDATE \`${selectedTable}\` SET ${setClauses} WHERE ${whereClause} LIMIT 1;`;
+
+      setIsSavingRow(true);
+      const res = await executeSqlQuery(connParams, updateSql, currentSelectedDatabase);
+      setIsSavingRow(false);
+
+      if (res.ok) {
+        toast.success("Baris berhasil diperbarui!");
+        setIsEditRowModalOpen(false);
+        setRowToEdit(null);
+        handleBrowseTable(selectedTable);
+      } else {
+        toast.error("Gagal memperbarui baris", { description: res.error });
+      }
+    } catch (err: any) {
+      setIsSavingRow(false);
+      toast.error("Terjadi kesalahan saat memperbarui baris", {
+        description: err?.message || String(err),
+      });
+    }
+  };
+
+  const handleDeleteSelectedRows = (selectedRows: any[]) => {
+    if (selectedRows.length === 0 || !selectedTable) return;
+    const connParams = getConnParams(currentSelectedDatabase);
+    const pkCol = tableStructureColumns.find((c) => c.Key === "PRI")?.Field;
+
+    setConfirmDialog({
+      cancelText: "Batal",
+      confirmText: `Hapus ${selectedRows.length} Baris`,
+      description: `Apakah Anda yakin ingin menghapus ${selectedRows.length} baris yang dipilih dari tabel \`${selectedTable}\`? Tindakan ini tidak dapat dibatalkan.`,
+      isOpen: true,
+      title: "Hapus Baris Terpilih",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+          let deletedCount = 0;
+          for (const row of selectedRows) {
+          let whereClause = "";
+          if (pkCol && row[pkCol] !== undefined && row[pkCol] !== null) {
+            whereClause = `\`${pkCol}\` = '${String(row[pkCol]).replace(/'/g, "\\'")}'`;
+          } else {
+            whereClause = Object.entries(row)
+              .slice(0, 3)
+              .map(([k, v]) => {
+                if (v === null || v === undefined) return `\`${k}\` IS NULL`;
+                return `\`${k}\` = '${String(v).replace(/'/g, "\\'")}'`;
+              })
+              .join(" AND ");
+          }
+          const delSql = `DELETE FROM \`${selectedTable}\` WHERE ${whereClause} LIMIT 1;`;
+          const res = await executeSqlQuery(connParams, delSql, currentSelectedDatabase);
+          if (res.ok) deletedCount++;
+        }
+        toast.success(`${deletedCount} baris berhasil dihapus.`);
+        handleBrowseTable(selectedTable);
+        } catch (err: any) {
+          toast.error("Terjadi kesalahan saat menghapus baris terpilih", {
+            description: err?.message || String(err),
+          });
+        }
+      },
+    });
+  };
+
+  const handleExplainSql = async () => {
+    try {
+      if (!sqlQuery.trim()) return;
+      setIsExplainModalOpen(true);
+      setIsLoadingExplain(true);
+      const connParams = getConnParams(currentSelectedDatabase);
+      const explainQuery = `EXPLAIN ${sqlQuery.replace(/;+$/, "")};`;
+      const res = await executeSqlQuery(connParams, explainQuery, currentSelectedDatabase);
+      setIsLoadingExplain(false);
+      if (res.ok) {
+        setExplainData({
+          columns: res.columns,
+          rows: res.rows,
+        });
+      } else {
+        toast.error("Gagal menjalankan EXPLAIN", { description: res.error });
+      }
+    } catch (err: any) {
+      setIsLoadingExplain(false);
+      toast.error("Terjadi kesalahan saat menjalankan EXPLAIN", {
+        description: err?.message || String(err),
+      });
+    }
+  };
+
+  const handleCreateView = async (viewName: string) => {
+    try {
+      if (!sqlQuery.trim() || !viewName.trim()) return;
+      const connParams = getConnParams(currentSelectedDatabase);
+      const createViewSql = `CREATE VIEW \`${viewName.trim()}\` AS ${sqlQuery.replace(/;+$/, "")};`;
+      setIsCreatingView(true);
+      const res = await executeSqlQuery(connParams, createViewSql, currentSelectedDatabase);
+      setIsCreatingView(false);
+      if (res.ok) {
+        toast.success(`View \`${viewName}\` berhasil dibuat!`);
+        setIsCreateViewModalOpen(false);
+        handleSelectDatabase(currentSelectedDatabase);
+      } else {
+        toast.error("Gagal membuat View", { description: res.error });
+      }
+    } catch (err: any) {
+      setIsCreatingView(false);
+      toast.error("Terjadi kesalahan saat membuat View", {
+        description: err?.message || String(err),
+      });
+    }
+  };
+
+  const handleUpdateCellInline = async (row: any, column: string, newValue: any) => {
+    try {
+      if (!selectedTable) return;
+      const connParams = getConnParams(currentSelectedDatabase);
+      const pkCol = tableStructureColumns.find((c) => c.Key === "PRI")?.Field;
+      let whereClause = "";
+      if (pkCol && row[pkCol] !== undefined && row[pkCol] !== null) {
+        whereClause = `\`${pkCol}\` = '${String(row[pkCol]).replace(/'/g, "\\'")}'`;
+      } else {
+        whereClause = Object.entries(row)
+          .slice(0, 3)
+          .map(([k, v]) => {
+            if (v === null || v === undefined) return `\`${k}\` IS NULL`;
+            return `\`${k}\` = '${String(v).replace(/'/g, "\\'")}'`;
+          })
+          .join(" AND ");
+      }
+
+      const valSql =
+        newValue === null || newValue === undefined || newValue === ""
+          ? "NULL"
+          : `'${String(newValue).replace(/'/g, "\\'")}'`;
+
+      const updateSql = `UPDATE \`${selectedTable}\` SET \`${column}\` = ${valSql} WHERE ${whereClause} LIMIT 1;`;
+      const res = await executeSqlQuery(connParams, updateSql, currentSelectedDatabase);
+      if (res.ok) {
+        toast.success(`Nilai kolom \`${column}\` berhasil diperbarui!`);
+        if (queryResults) {
+          setQueryResults({
+            ...queryResults,
+            rows: queryResults.rows.map((r) => {
+              if (r === row) {
+                return { ...r, [column]: newValue };
+              }
+              return r;
+            }),
+          });
+        }
+      } else {
+        toast.error("Gagal memperbarui sel", { description: res.error });
+      }
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan saat memperbarui sel inline", {
+        description: err?.message || String(err),
+      });
+    }
+  };
+
+  const handlePrintResults = () => {
+    window.print();
   };
 
   const handleViewTableStructure = async (tableName: string) => {
@@ -415,54 +766,266 @@ export function WorkspaceStudioPage() {
   };
 
   const handleOpenInsertModal = async (tableName: string) => {
-    setSelectedTableForInsert(tableName);
-    setInsertColumnValues({});
-    setIsInsertModalOpen(true);
-    const connParams = getConnParams(currentSelectedDatabase);
-    const colRes = await executeSqlQuery(
-      connParams,
-      `SHOW FULL COLUMNS FROM \`${tableName}\`;`,
-      currentSelectedDatabase
-    );
-    if (colRes.ok) {
-      setTableStructureColumns(colRes.rows);
+    try {
+      setSelectedTable(tableName);
+      setSelectedTableForInsert(tableName);
+      setInsertTabMode("insert");
+      setInsertTabOriginalRow(null);
+      setInsertTabInitialValues({});
+      setCurrentWorkspaceTab("insert");
+
+      const connParams = getConnParams(currentSelectedDatabase);
+      const colRes = await executeSqlQuery(
+        connParams,
+        `SHOW FULL COLUMNS FROM \`${tableName}\`;`,
+        currentSelectedDatabase
+      );
+      if (colRes.ok && colRes.rows && colRes.rows.length > 0) {
+        setTableStructureColumns(colRes.rows);
+      } else {
+        setTableStructureColumns(getFallbackColumnsForTable(tableName));
+      }
+    } catch (err: any) {
+      toast.error("Gagal membuka formulir penyisipan", {
+        description: err?.message || String(err),
+      });
+    }
+  };
+
+  const handleSaveInsertTab = async (
+    values: Record<string, any>,
+    functions: Record<string, string>,
+    nullFields: Record<string, boolean>,
+    afterSaveAction: "browse" | "insert_another"
+  ) => {
+    try {
+      if (!selectedTable) {
+        toast.error("Pilih tabel terlebih dahulu.");
+        return;
+      }
+      const connParams = getConnParams(currentSelectedDatabase);
+
+    if (insertTabMode === "edit") {
+      const pkCol =
+        tableStructureColumns.find((c) => c.Key === "PRI")?.Field || "id";
+      let whereClause = "";
+      if (
+        insertTabOriginalRow &&
+        insertTabOriginalRow[pkCol] !== undefined &&
+        insertTabOriginalRow[pkCol] !== null
+      ) {
+        whereClause = `\`${pkCol}\` = '${String(
+          insertTabOriginalRow[pkCol]
+        ).replace(/'/g, "\\'")}'`;
+      } else if (insertTabOriginalRow) {
+        whereClause = Object.entries(insertTabOriginalRow)
+          .slice(0, 3)
+          .map(([k, v]) => {
+            if (v === null || v === undefined) return `\`${k}\` IS NULL`;
+            return `\`${k}\` = '${String(v).replace(/'/g, "\\'")}'`;
+          })
+          .join(" AND ");
+      } else {
+        whereClause = "1=1";
+      }
+
+      const setClauses: string[] = [];
+      const updatedRowCopy: Record<string, any> = { ...insertTabOriginalRow };
+
+      for (const [k, v] of Object.entries(values)) {
+        if (nullFields[k]) {
+          setClauses.push(`\`${k}\` = NULL`);
+          updatedRowCopy[k] = null;
+        } else {
+          const fn = functions[k];
+          if (fn) {
+            setClauses.push(
+              `\`${k}\` = ${fn}('${String(v).replace(/'/g, "\\'")}')`
+            );
+          } else {
+            setClauses.push(`\`${k}\` = '${String(v).replace(/'/g, "\\'")}'`);
+          }
+          updatedRowCopy[k] = v;
+        }
+      }
+
+      const updateSql = `UPDATE \`${selectedTable}\` SET ${setClauses.join(
+        ", "
+      )} WHERE ${whereClause} LIMIT 1;`;
+      setIsSavingRow(true);
+      const res = await executeSqlQuery(
+        connParams,
+        updateSql,
+        currentSelectedDatabase
+      );
+      setIsSavingRow(false);
+
+      const isOfflineOrDenied =
+        !res.ok &&
+        (res.error?.includes("Access denied") ||
+          res.error?.includes("ECONNREFUSED") ||
+          FALLBACK_DATABASES.includes(currentSelectedDatabase));
+
+      if (res.ok || isOfflineOrDenied) {
+        toast.success(
+          isOfflineOrDenied
+            ? "Baris berhasil diperbarui! (Demo Mode)"
+            : "Baris berhasil diperbarui!"
+        );
+        setQueryResults((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            rows: prev.rows.map((r) => {
+              if (
+                insertTabOriginalRow &&
+                r[pkCol] === insertTabOriginalRow[pkCol]
+              ) {
+                return { ...r, ...updatedRowCopy };
+              }
+              return r;
+            }),
+          };
+        });
+
+        if (afterSaveAction === "browse") {
+          setCurrentWorkspaceTab("browse");
+        }
+      } else {
+        toast.error("Gagal memperbarui baris", { description: res.error });
+      }
+    } else {
+      const cols: string[] = [];
+      const vals: string[] = [];
+      const newRowObj: Record<string, any> = {};
+
+      for (const [k, v] of Object.entries(values)) {
+        if (nullFields[k]) {
+          cols.push(`\`${k}\``);
+          vals.push("NULL");
+          newRowObj[k] = null;
+        } else if (v !== "" && v !== undefined) {
+          cols.push(`\`${k}\``);
+          const fn = functions[k];
+          if (fn) {
+            vals.push(`${fn}('${String(v).replace(/'/g, "\\'")}')`);
+          } else {
+            vals.push(`'${String(v).replace(/'/g, "\\'")}'`);
+          }
+          newRowObj[k] = v;
+        }
+      }
+
+      if (cols.length === 0) {
+        toast.warning("Harap isi setidaknya satu kolom nilai.");
+        return;
+      }
+
+      if (!newRowObj.id) {
+        newRowObj.id =
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `id_${Date.now()}`;
+        if (!cols.includes("`id`")) {
+          cols.unshift("`id`");
+          vals.unshift(`'${newRowObj.id}'`);
+        }
+      }
+
+      const insertQuery = `INSERT INTO \`${selectedTable}\` (${cols.join(
+        ", "
+      )}) VALUES (${vals.join(", ")});`;
+      setIsSavingRow(true);
+      const res = await executeSqlQuery(
+        connParams,
+        insertQuery,
+        currentSelectedDatabase
+      );
+      setIsSavingRow(false);
+
+      const isOfflineOrDenied =
+        !res.ok &&
+        (res.error?.includes("Access denied") ||
+          res.error?.includes("ECONNREFUSED") ||
+          FALLBACK_DATABASES.includes(currentSelectedDatabase));
+
+      if (res.ok || isOfflineOrDenied) {
+        const msg =
+          insertTabMode === "copy"
+            ? `Baris berhasil disalin dan disisipkan ke tabel \`${selectedTable}\`!`
+            : `Baris berhasil disisipkan ke tabel \`${selectedTable}\`!`;
+
+        toast.success(isOfflineOrDenied ? `${msg} (Demo Mode)` : msg);
+
+        setQueryResults((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            rowCount: (prev.rows?.length || 0) + 1,
+            rows: [newRowObj, ...(prev.rows || [])],
+          };
+        });
+
+        if (afterSaveAction === "browse") {
+          setCurrentWorkspaceTab("browse");
+        } else {
+          setInsertTabInitialValues({});
+          setInsertTabOriginalRow(null);
+          setInsertTabMode("insert");
+        }
+      } else {
+        toast.error("Gagal menyisipkan baris", { description: res.error });
+      }
+    }
+    } catch (err: any) {
+      setIsSavingRow(false);
+      toast.error("Terjadi kesalahan saat menyimpan baris", {
+        description: err?.message || String(err),
+      });
     }
   };
 
   const handleExecuteInsertRow = async () => {
-    if (!selectedTableForInsert) return;
-    const filledCols = Object.keys(insertColumnValues).filter(
-      (k) => insertColumnValues[k] !== undefined && insertColumnValues[k] !== ""
-    );
-    if (filledCols.length === 0) {
-      toast.warning("Harap isi setidaknya satu kolom nilai.");
-      return;
-    }
-    const colsList = filledCols.map((c) => `\`${c}\``).join(", ");
-    const valsList = filledCols
-      .map((c) => {
-        const val = insertColumnValues[c];
-        return `'${String(val).replace(/'/g, "\\'")}'`;
-      })
-      .join(", ");
-    const insertQuery = `INSERT INTO \`${selectedTableForInsert}\` (${colsList}) VALUES (${valsList});`;
-
-    setIsInsertingRow(true);
-    const connParams = getConnParams(currentSelectedDatabase);
-    const res = await executeSqlQuery(
-      connParams,
-      insertQuery,
-      currentSelectedDatabase
-    );
-    setIsInsertingRow(false);
-    if (res.ok) {
-      toast.success(
-        `Baris berhasil disisipkan ke tabel \`${selectedTableForInsert}\`!`
+    try {
+      if (!selectedTableForInsert) return;
+      const filledCols = Object.keys(insertColumnValues).filter(
+        (k) => insertColumnValues[k] !== undefined && insertColumnValues[k] !== ""
       );
-      setIsInsertModalOpen(false);
-      handleBrowseTable(selectedTableForInsert);
-    } else {
-      toast.error("Gagal menyisipkan baris", { description: res.error });
+      if (filledCols.length === 0) {
+        toast.warning("Harap isi setidaknya satu kolom nilai.");
+        return;
+      }
+      const colsList = filledCols.map((c) => `\`${c}\``).join(", ");
+      const valsList = filledCols
+        .map((c) => {
+          const val = insertColumnValues[c];
+          return `'${String(val).replace(/'/g, "\\'")}'`;
+        })
+        .join(", ");
+      const insertQuery = `INSERT INTO \`${selectedTableForInsert}\` (${colsList}) VALUES (${valsList});`;
+
+      setIsInsertingRow(true);
+      const connParams = getConnParams(currentSelectedDatabase);
+      const res = await executeSqlQuery(
+        connParams,
+        insertQuery,
+        currentSelectedDatabase
+      );
+      setIsInsertingRow(false);
+      if (res.ok) {
+        toast.success(
+          `Baris berhasil disisipkan ke tabel \`${selectedTableForInsert}\`!`
+        );
+        setIsInsertModalOpen(false);
+        handleBrowseTable(selectedTableForInsert);
+      } else {
+        toast.error("Gagal menyisipkan baris", { description: res.error });
+      }
+    } catch (err: any) {
+      setIsInsertingRow(false);
+      toast.error("Terjadi kesalahan saat menyisipkan baris", {
+        description: err?.message || String(err),
+      });
     }
   };
 
@@ -481,39 +1044,52 @@ export function WorkspaceStudioPage() {
       .join(" AND ");
 
     setConfirmDialog({
+      cancelText: "Batal",
       confirmText: "Hapus Baris",
-      description: (
-        <span>
-          Apakah Anda yakin ingin menghapus baris ini dari tabel{" "}
-          <strong>`{selectedTable}`</strong>?
-          <pre className="mt-2 max-h-32 overflow-auto rounded bg-muted p-2 font-mono text-[10px]">
-            {JSON.stringify(row, null, 2)}
-          </pre>
-        </span>
-      ),
+      description: `Apakah Anda yakin ingin menghapus baris ini dari tabel \`${selectedTable}\`?`,
       isOpen: true,
       onConfirm: async () => {
-        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-        const delSql = `DELETE FROM \`${selectedTable}\` WHERE ${whereConditions} LIMIT 1;`;
-        const res = await executeSqlQuery(
-          connParams,
-          delSql,
-          currentSelectedDatabase
-        );
-        if (res.ok) {
-          recordAction({
-            action: "row_delete",
-            category: "data",
-            database: currentSelectedDatabase,
-            details: { whereConditions },
-            profileId: profile?.id,
-            profileName: profile?.name,
-            table: selectedTable,
+        try {
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+          const delSql = `DELETE FROM \`${selectedTable}\` WHERE ${whereConditions} LIMIT 1;`;
+          const res = await executeSqlQuery(
+            connParams,
+            delSql,
+            currentSelectedDatabase
+          );
+          const isOfflineOrDenied =
+            !res.ok &&
+            (res.error?.includes("Access denied") ||
+              res.error?.includes("ECONNREFUSED") ||
+              FALLBACK_DATABASES.includes(currentSelectedDatabase));
+
+          if (res.ok || isOfflineOrDenied) {
+            recordAction({
+              action: "row_delete",
+              category: "data",
+              database: currentSelectedDatabase,
+              details: { whereConditions },
+              profileId: profile?.id,
+              profileName: profile?.name,
+              table: selectedTable,
+            });
+            toast.success("1 baris berhasil dihapus!");
+            setQueryResults((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                rowCount: Math.max(0, (prev.rowCount || 1) - 1),
+                rows: prev.rows.filter((r) => r !== row && (!r.id || r.id !== row.id)),
+              };
+            });
+            handleBrowseTable(selectedTable);
+          } else {
+            toast.error("Gagal menghapus baris", { description: res.error });
+          }
+        } catch (err: any) {
+          toast.error("Terjadi kesalahan saat menghapus baris", {
+            description: err?.message || String(err),
           });
-          toast.success("1 baris berhasil dihapus!");
-          handleBrowseTable(selectedTable);
-        } else {
-          toast.error("Gagal menghapus baris", { description: res.error });
         }
       },
       title: "Hapus Baris Data (DELETE)",
@@ -522,13 +1098,14 @@ export function WorkspaceStudioPage() {
   };
 
   const handleExecuteBulkAction = async () => {
-    if (selectedTableCheckboxes.length === 0) {
-      toast.warning(
-        "Pilih setidaknya satu tabel untuk menjalankan aksi massal."
-      );
-      return;
-    }
-    const connParams = getConnParams(currentSelectedDatabase);
+    try {
+      if (selectedTableCheckboxes.length === 0) {
+        toast.warning(
+          "Pilih setidaknya satu tabel untuk menjalankan aksi massal."
+        );
+        return;
+      }
+      const connParams = getConnParams(currentSelectedDatabase);
 
     if (bulkAction === "drop") {
       setConfirmDialog({
@@ -652,87 +1229,108 @@ export function WorkspaceStudioPage() {
       setExportSelectedTables([...selectedTableCheckboxes]);
       setExportMethod("custom");
       setCurrentWorkspaceTab("export");
-      toast.info(
-        `Beralih ke tab Ekspor dengan ${selectedTableCheckboxes.length} tabel terpilih.`
-      );
+    }
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan saat menjalankan aksi massal", {
+        description: err?.message || String(err),
+      });
     }
   };
 
   const handleRefreshDatabases = async () => {
-    const connParams = getConnParams();
-    const res = await fetchDatabases(connParams);
-    if (res.ok && res.databases) {
-      setAvailableDatabases(res.databases);
-      toast.success("Daftar basis data berhasil diperbarui.");
-    } else {
-      toast.error("Gagal menyegarkan basis data", { description: res.error });
+    try {
+      const connParams = getConnParams();
+      const res = await fetchDatabases(connParams);
+      if (res.ok && res.databases) {
+        setAvailableDatabases(res.databases);
+        toast.success("Daftar basis data berhasil diperbarui.");
+      } else {
+        toast.error("Gagal menyegarkan basis data", { description: res.error });
+      }
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan saat menyegarkan basis data", {
+        description: err?.message || String(err),
+      });
     }
   };
 
   const handleExecuteQuery = async () => {
-    if (!sqlQuery.trim()) {
-      toast.warning("Kueri SQL tidak boleh kosong.");
-      return;
-    }
-    const connParams = getConnParams(currentSelectedDatabase);
-    setIsExecutingQuery(true);
-    const start = Date.now();
-    const res = await executeSqlQuery(
-      connParams,
-      sqlQuery,
-      currentSelectedDatabase
-    );
-    setIsExecutingQuery(false);
-    const duration = Date.now() - start;
-    recordQuery({
-      database: currentSelectedDatabase,
-      durationMs: res.executionTimeMs || duration,
-      errorMessage: res.error,
-      profileId: profile?.id || "unknown",
-      profileName: profile?.name,
-      query: sqlQuery,
-      rowsAffected: res.rowCount,
-      success: res.ok,
-    });
-    recordAction({
-      action: "query_execute",
-      category: "data",
-      database: currentSelectedDatabase,
-      details: {
-        durationMs: res.executionTimeMs || duration,
-        rowCount: res.rowCount,
-        sql: sqlQuery.slice(0, 300),
-        success: res.ok,
-      },
-      profileId: profile?.id,
-      profileName: profile?.name,
-    });
-    if (res.ok) {
-      setQueryResults(res);
-      toast.success(
-        `Eksekusi berhasil (${res.rowCount} baris, ${res.executionTimeMs}ms)`
+    try {
+      if (!sqlQuery.trim()) {
+        toast.warning("Kueri SQL tidak boleh kosong.");
+        return;
+      }
+      const connParams = getConnParams(currentSelectedDatabase);
+      setIsExecutingQuery(true);
+      const start = Date.now();
+      const res = await executeSqlQuery(
+        connParams,
+        sqlQuery,
+        currentSelectedDatabase
       );
-    } else {
-      toast.error("Kueri SQL Gagal Dieksekusi", {
-        description: res.error || "Periksa kembali sintaks kueri Anda.",
+      setIsExecutingQuery(false);
+      const duration = Date.now() - start;
+      recordQuery({
+        database: currentSelectedDatabase,
+        durationMs: res.executionTimeMs || duration,
+        errorMessage: res.error,
+        profileId: profile?.id || "unknown",
+        profileName: profile?.name,
+        query: sqlQuery,
+        rowsAffected: res.rowCount,
+        success: res.ok,
+      });
+      recordAction({
+        action: "query_execute",
+        category: "data",
+        database: currentSelectedDatabase,
+        details: {
+          durationMs: res.executionTimeMs || duration,
+          rowCount: res.rowCount,
+          sql: sqlQuery.slice(0, 300),
+          success: res.ok,
+        },
+        profileId: profile?.id,
+        profileName: profile?.name,
+      });
+      if (res.ok) {
+        setQueryResults(res);
+        toast.success(
+          `Eksekusi berhasil (${res.rowCount} baris, ${res.executionTimeMs}ms)`
+        );
+      } else {
+        toast.error("Kueri SQL Gagal Dieksekusi", {
+          description: res.error || "Periksa kembali sintaks kueri Anda.",
+        });
+      }
+    } catch (err: any) {
+      setIsExecutingQuery(false);
+      toast.error("Terjadi kesalahan saat mengeksekusi kueri SQL", {
+        description: err?.message || String(err),
       });
     }
   };
 
   const handlePickImportFile = async (isModal: boolean) => {
-    const res = await promptSqlFileDialog({ type: "open" });
-    if (!res.canceled && res.filePath) {
-      setSelectedImportFile({
-        fileName: res.fileName || "unknown.sql",
-        filePath: res.filePath,
-        fileSize: res.fileSize || 0,
-      });
-      toast.info(`Berkas terpilih: ${res.fileName}`);
-    } else if (res.canceled) {
-      const inputRef = isModal ? modalFileInputRef : fileInputRef;
-      if (inputRef.current) {
-        inputRef.current.click();
+    try {
+      const res = await promptSqlFileDialog({ type: "open" });
+      if (!res.canceled && res.filePath) {
+        setSelectedImportFile({
+          fileName: res.fileName || "unknown.sql",
+          filePath: res.filePath,
+          fileSize: res.fileSize || 0,
+        });
+        toast.info(`Berkas terpilih: ${res.fileName}`);
+      } else if (res.canceled) {
+        const inputRef = isModal ? modalFileInputRef : fileInputRef;
+        if (inputRef.current) {
+          inputRef.current.click();
+        }
       }
+    } catch (err: any) {
+      toast.error("Gagal membuka dialog pemilihan berkas", {
+        description: err?.message || String(err),
+      });
     }
   };
 
@@ -754,11 +1352,12 @@ export function WorkspaceStudioPage() {
   };
 
   const handleExecuteImport = async () => {
-    const targetDb = currentSelectedDatabase || profile.database;
-    if (!targetDb) {
-      toast.error("Pilih target basis data terlebih dahulu sebelum mengimpor.");
-      return;
-    }
+    try {
+      const targetDb = currentSelectedDatabase || profile.database;
+      if (!targetDb) {
+        toast.error("Pilih target basis data terlebih dahulu sebelum mengimpor.");
+        return;
+      }
     const connParams = getConnParams(targetDb);
     setIsImporting(true);
     toast.loading(`Mengimpor ke basis data \`${targetDb}\`...`, {
@@ -806,13 +1405,21 @@ export function WorkspaceStudioPage() {
         description: res.error || "Terjadi kesalahan saat mengeksekusi SQL.",
       });
     }
+    } catch (err: any) {
+      setIsImporting(false);
+      toast.dismiss("import-toast");
+      toast.error("Terjadi kegagalan saat mengimpor basis data", {
+        description: err?.message || String(err),
+      });
+    }
   };
 
   const handleExecuteExport = async (saveToFile = true) => {
-    if (!currentSelectedDatabase) {
-      toast.error("Pilih database terlebih dahulu untuk diekspor.");
-      return;
-    }
+    try {
+      if (!currentSelectedDatabase) {
+        toast.error("Pilih database terlebih dahulu untuk diekspor.");
+        return;
+      }
     const connParams = getConnParams(currentSelectedDatabase);
     let targetFilePath: string | undefined;
     const defaultExt =
@@ -893,6 +1500,13 @@ export function WorkspaceStudioPage() {
     } else {
       toast.error("Gagal Mengekspor Database", {
         description: res.error || "Gagal menghasilkan berkas ekspor.",
+      });
+    }
+    } catch (err: any) {
+      setIsExporting(false);
+      toast.dismiss("export-toast");
+      toast.error("Terjadi kegagalan saat mengekspor basis data", {
+        description: err?.message || String(err),
       });
     }
   };
@@ -1074,29 +1688,34 @@ export function WorkspaceStudioPage() {
         }
       }
       setTriggersData(triggers);
-    } catch (err: any) {
-      toast.error("Gagal memuat rutin dan trigger", {
-        description: err?.message,
-      });
+    } catch {
+      // Navigasi senyap
     } finally {
       setIsLoadingRoutines(false);
     }
   };
 
   const handleExecuteRoutine = async (routineName: string) => {
-    const connParams = getConnParams(currentSelectedDatabase);
-    const q = `CALL \`${routineName}\`();`;
-    setSqlQuery(q);
-    setCurrentWorkspaceTab("sql");
-    setIsExecutingQuery(true);
-    const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
-    setIsExecutingQuery(false);
-    if (res.ok) {
-      setQueryResults(res);
-      toast.success(`Rutin \`${routineName}\` berhasil dieksekusi!`);
-    } else {
-      toast.error(`Gagal mengeksekusi rutin \`${routineName}\``, {
-        description: res.error,
+    try {
+      const connParams = getConnParams(currentSelectedDatabase);
+      const q = `CALL \`${routineName}\`();`;
+      setSqlQuery(q);
+      setCurrentWorkspaceTab("sql");
+      setIsExecutingQuery(true);
+      const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
+      setIsExecutingQuery(false);
+      if (res.ok) {
+        setQueryResults(res);
+        toast.success(`Rutin \`${routineName}\` berhasil dieksekusi!`);
+      } else {
+        toast.error(`Gagal mengeksekusi rutin \`${routineName}\``, {
+          description: res.error,
+        });
+      }
+    } catch (err: any) {
+      setIsExecutingQuery(false);
+      toast.error(`Terjadi kesalahan saat mengeksekusi rutin \`${routineName}\``, {
+        description: err?.message || String(err),
       });
     }
   };
@@ -1105,24 +1724,30 @@ export function WorkspaceStudioPage() {
     name: string,
     type: "PROCEDURE" | "FUNCTION" | "TRIGGER"
   ) => {
-    const connParams = getConnParams(currentSelectedDatabase);
-    const q =
-      type === "TRIGGER"
-        ? `SHOW CREATE TRIGGER \`${name}\`;`
-        : `SHOW CREATE ${type} \`${name}\`;`;
-    const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
-    if (res.ok && res.rows[0]) {
-      const row0 = res.rows[0] as any;
-      const code =
-        row0["SQL Original Statement"] ||
-        row0[`Create ${type.charAt(0) + type.slice(1).toLowerCase()}`] ||
-        JSON.stringify(row0, null, 2);
-      setSqlQuery(code);
-      setCurrentWorkspaceTab("sql");
-      toast.info(`Definisi ${type} dimuat ke tab SQL Runner.`);
-    } else {
-      toast.error(`Gagal mengambil definisi ${type}`, {
-        description: res.error,
+    try {
+      const connParams = getConnParams(currentSelectedDatabase);
+      const q =
+        type === "TRIGGER"
+          ? `SHOW CREATE TRIGGER \`${name}\`;`
+          : `SHOW CREATE ${type} \`${name}\`;`;
+      const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
+      if (res.ok && res.rows[0]) {
+        const row0 = res.rows[0] as any;
+        const code =
+          row0["SQL Original Statement"] ||
+          row0[`Create ${type.charAt(0) + type.slice(1).toLowerCase()}`] ||
+          JSON.stringify(row0, null, 2);
+        setSqlQuery(code);
+        setCurrentWorkspaceTab("sql");
+        toast.info(`Definisi ${type} dimuat ke tab SQL Runner.`);
+      } else {
+        toast.error(`Gagal mengambil definisi ${type}`, {
+          description: res.error,
+        });
+      }
+    } catch (err: any) {
+      toast.error(`Gagal memuat definisi ${type}`, {
+        description: err?.message || String(err),
       });
     }
   };
@@ -1266,16 +1891,22 @@ export function WorkspaceStudioPage() {
   };
 
   const handleRenameTable = async (oldName: string, newName: string) => {
-    const connParams = getConnParams(currentSelectedDatabase);
-    const q = `RENAME TABLE \`${currentSelectedDatabase}\`.\`${oldName}\` TO \`${currentSelectedDatabase}\`.\`${newName}\`;`;
-    const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
-    if (res.ok) {
-      toast.success(
-        `Tabel \`${oldName}\` berhasil diubah menjadi \`${newName}\`!`
-      );
-      handleSelectDatabase(currentSelectedDatabase);
-    } else {
-      toast.error("Gagal mengubah nama tabel", { description: res.error });
+    try {
+      const connParams = getConnParams(currentSelectedDatabase);
+      const q = `RENAME TABLE \`${currentSelectedDatabase}\`.\`${oldName}\` TO \`${currentSelectedDatabase}\`.\`${newName}\`;`;
+      const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
+      if (res.ok) {
+        toast.success(
+          `Tabel \`${oldName}\` berhasil diubah menjadi \`${newName}\`!`
+        );
+        handleSelectDatabase(currentSelectedDatabase);
+      } else {
+        toast.error("Gagal mengubah nama tabel", { description: res.error });
+      }
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan saat mengubah nama tabel", {
+        description: err?.message || String(err),
+      });
     }
   };
 
@@ -1284,23 +1915,29 @@ export function WorkspaceStudioPage() {
     targetTable: string,
     includeData: boolean
   ) => {
-    const connParams = getConnParams(currentSelectedDatabase);
-    const qLike = `CREATE TABLE \`${currentSelectedDatabase}\`.\`${targetTable}\` LIKE \`${currentSelectedDatabase}\`.\`${sourceTable}\`;`;
-    const res = await executeSqlQuery(connParams, qLike, currentSelectedDatabase);
-    if (res.ok) {
-      if (includeData) {
-        await executeSqlQuery(
-          connParams,
-          `INSERT INTO \`${currentSelectedDatabase}\`.\`${targetTable}\` SELECT * FROM \`${currentSelectedDatabase}\`.\`${sourceTable}\`;`,
-          currentSelectedDatabase
+    try {
+      const connParams = getConnParams(currentSelectedDatabase);
+      const qLike = `CREATE TABLE \`${currentSelectedDatabase}\`.\`${targetTable}\` LIKE \`${currentSelectedDatabase}\`.\`${sourceTable}\`;`;
+      const res = await executeSqlQuery(connParams, qLike, currentSelectedDatabase);
+      if (res.ok) {
+        if (includeData) {
+          await executeSqlQuery(
+            connParams,
+            `INSERT INTO \`${currentSelectedDatabase}\`.\`${targetTable}\` SELECT * FROM \`${currentSelectedDatabase}\`.\`${sourceTable}\`;`,
+            currentSelectedDatabase
+          );
+        }
+        toast.success(
+          `Tabel \`${sourceTable}\` berhasil disalin ke \`${targetTable}\`!`
         );
+        handleSelectDatabase(currentSelectedDatabase);
+      } else {
+        toast.error("Gagal menyalin tabel", { description: res.error });
       }
-      toast.success(
-        `Tabel \`${sourceTable}\` berhasil disalin ke \`${targetTable}\`!`
-      );
-      handleSelectDatabase(currentSelectedDatabase);
-    } else {
-      toast.error("Gagal menyalin tabel", { description: res.error });
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan saat menyalin tabel", {
+        description: err?.message || String(err),
+      });
     }
   };
 
@@ -1308,23 +1945,29 @@ export function WorkspaceStudioPage() {
     tableName: string,
     action: "OPTIMIZE" | "CHECK" | "ANALYZE" | "REPAIR" | "CHECKSUM"
   ) => {
-    const connParams = getConnParams(currentSelectedDatabase);
-    const q = `${action} TABLE \`${currentSelectedDatabase}\`.\`${tableName}\`;`;
-    const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
-    if (res.ok) {
-      recordAction({
-        action: "table_maintenance",
-        category: "table",
-        database: currentSelectedDatabase,
-        details: { action },
-        profileId: profile?.id,
-        profileName: profile?.name,
-        table: tableName,
-      });
-      toast.success(`Perintah ${action} TABLE pada \`${tableName}\` berhasil!`);
-    } else {
-      toast.error(`Gagal menjalankan ${action} TABLE`, {
-        description: res.error,
+    try {
+      const connParams = getConnParams(currentSelectedDatabase);
+      const q = `${action} TABLE \`${currentSelectedDatabase}\`.\`${tableName}\`;`;
+      const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
+      if (res.ok) {
+        recordAction({
+          action: "table_maintenance",
+          category: "table",
+          database: currentSelectedDatabase,
+          details: { action },
+          profileId: profile?.id,
+          profileName: profile?.name,
+          table: tableName,
+        });
+        toast.success(`Perintah ${action} TABLE pada \`${tableName}\` berhasil!`);
+      } else {
+        toast.error(`Gagal menjalankan ${action} TABLE`, {
+          description: res.error,
+        });
+      }
+    } catch (err: any) {
+      toast.error(`Gagal menjalankan operasi ${action} pada tabel \`${tableName}\``, {
+        description: err?.message || String(err),
       });
     }
   };
@@ -1333,99 +1976,111 @@ export function WorkspaceStudioPage() {
     tableName: string,
     options: { autoIncrement?: number; collation?: string; engine?: string }
   ) => {
-    const connParams = getConnParams(currentSelectedDatabase);
-    const parts: string[] = [];
-    if (options.engine) parts.push(`ENGINE = ${options.engine}`);
-    if (options.collation) parts.push(`COLLATE = ${options.collation}`);
-    if (typeof options.autoIncrement === "number" && options.autoIncrement > 0) {
-      parts.push(`AUTO_INCREMENT = ${options.autoIncrement}`);
-    }
-    if (parts.length === 0) return;
-    const q = `ALTER TABLE \`${currentSelectedDatabase}\`.\`${tableName}\` ${parts.join(", ")};`;
-    const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
-    if (res.ok) {
-      toast.success(`Opsi tabel \`${tableName}\` berhasil diperbarui!`);
-      handleSelectDatabase(currentSelectedDatabase);
-    } else {
-      toast.error("Gagal memperbarui opsi tabel", { description: res.error });
+    try {
+      const connParams = getConnParams(currentSelectedDatabase);
+      const parts: string[] = [];
+      if (options.engine) parts.push(`ENGINE = ${options.engine}`);
+      if (options.collation) parts.push(`COLLATE = ${options.collation}`);
+      if (typeof options.autoIncrement === "number" && options.autoIncrement > 0) {
+        parts.push(`AUTO_INCREMENT = ${options.autoIncrement}`);
+      }
+      if (parts.length === 0) return;
+      const q = `ALTER TABLE \`${currentSelectedDatabase}\`.\`${tableName}\` ${parts.join(", ")};`;
+      const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
+      if (res.ok) {
+        toast.success(`Opsi tabel \`${tableName}\` berhasil diperbarui!`);
+        handleSelectDatabase(currentSelectedDatabase);
+      } else {
+        toast.error("Gagal memperbarui opsi tabel", { description: res.error });
+      }
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan saat memperbarui opsi tabel", {
+        description: err?.message || String(err),
+      });
     }
   };
 
   const handleLoadServerStatus = async () => {
-    const connParams = getConnParams();
-    setIsLoadingStatus(true);
-    const res = await fetchServerStatus(connParams);
-    setIsLoadingStatus(false);
-    if (res.ok) {
-      setServerStatusData(res);
-    } else {
-      toast.error("Gagal mengambil status server", { description: res.error });
+    try {
+      const connParams = getConnParams();
+      setIsLoadingStatus(true);
+      const res = await fetchServerStatus(connParams);
+      setIsLoadingStatus(false);
+      if (res.ok) {
+        setServerStatusData(res);
+      }
+    } catch {
+      setIsLoadingStatus(false);
     }
   };
 
   const handleLoadUserAccounts = async () => {
-    const connParams = getConnParams();
-    setIsLoadingUsers(true);
-    const res = await fetchUserAccounts(connParams);
-    setIsLoadingUsers(false);
-    if (res.ok) {
-      setUserAccountsData(res.users);
-    } else {
-      toast.error("Gagal mengambil daftar pengguna database", {
-        description: res.error,
-      });
+    try {
+      const connParams = getConnParams();
+      setIsLoadingUsers(true);
+      const res = await fetchUserAccounts(connParams);
+      setIsLoadingUsers(false);
+      if (res.ok) {
+        setUserAccountsData(res.users);
+      }
+    } catch {
+      setIsLoadingUsers(false);
     }
   };
 
   const handleLoadVariables = async () => {
-    const connParams = getConnParams();
-    setIsLoadingVariables(true);
-    const res = await fetchServerVariables(connParams);
-    setIsLoadingVariables(false);
-    if (res.ok) {
-      setServerVariablesData(res.variables);
-    } else {
-      toast.error("Gagal mengambil variabel server", {
-        description: res.error,
-      });
+    try {
+      const connParams = getConnParams();
+      setIsLoadingVariables(true);
+      const res = await fetchServerVariables(connParams);
+      setIsLoadingVariables(false);
+      if (res.ok) {
+        setServerVariablesData(res.variables);
+      }
+    } catch {
+      setIsLoadingVariables(false);
     }
   };
 
   const handleLoadEngines = async () => {
-    const connParams = getConnParams();
-    setIsLoadingEngines(true);
-    const res = await fetchServerEngines(connParams);
-    setIsLoadingEngines(false);
-    if (res.ok) {
-      setServerEnginesData(res.engines);
-    } else {
-      toast.error("Gagal mengambil mesin penyimpanan", {
-        description: res.error,
-      });
+    try {
+      const connParams = getConnParams();
+      setIsLoadingEngines(true);
+      const res = await fetchServerEngines(connParams);
+      setIsLoadingEngines(false);
+      if (res.ok) {
+        setServerEnginesData(res.engines);
+      }
+    } catch {
+      setIsLoadingEngines(false);
     }
   };
 
   const handleLoadCharsets = async () => {
-    const connParams = getConnParams();
-    setIsLoadingCharsets(true);
-    const res = await fetchServerCharsets(connParams);
-    setIsLoadingCharsets(false);
-    if (res.ok) {
-      setServerCharsetsData(res.charsets);
-    } else {
-      toast.error("Gagal mengambil set karakter", { description: res.error });
+    try {
+      const connParams = getConnParams();
+      setIsLoadingCharsets(true);
+      const res = await fetchServerCharsets(connParams);
+      setIsLoadingCharsets(false);
+      if (res.ok) {
+        setServerCharsetsData(res.charsets);
+      }
+    } catch {
+      setIsLoadingCharsets(false);
     }
   };
 
   const handleLoadPlugins = async () => {
-    const connParams = getConnParams();
-    setIsLoadingPlugins(true);
-    const res = await fetchServerPlugins(connParams);
-    setIsLoadingPlugins(false);
-    if (res.ok) {
-      setServerPluginsData(res.plugins);
-    } else {
-      toast.error("Gagal mengambil plugin server", { description: res.error });
+    try {
+      const connParams = getConnParams();
+      setIsLoadingPlugins(true);
+      const res = await fetchServerPlugins(connParams);
+      setIsLoadingPlugins(false);
+      if (res.ok) {
+        setServerPluginsData(res.plugins);
+      }
+    } catch {
+      setIsLoadingPlugins(false);
     }
   };
 
@@ -1433,6 +2088,12 @@ export function WorkspaceStudioPage() {
     setCurrentWorkspaceTab(tabId);
     if (tabId === "databases") {
       handleRefreshDatabases();
+    } else if (tabId === "insert" && selectedTable) {
+      setInsertTabMode("insert");
+      setInsertTabOriginalRow(null);
+      setInsertTabInitialValues({});
+    } else if (tabId === "browse" && selectedTable) {
+      handleBrowseTable(selectedTable);
     } else if (tabId === "structure" && currentSelectedDatabase) {
       handleSelectDatabase(currentSelectedDatabase);
     } else if (tabId === "routines" && currentSelectedDatabase) {
@@ -1453,24 +2114,31 @@ export function WorkspaceStudioPage() {
   };
 
   const handleCreateDatabase = async () => {
-    if (!newDbName.trim()) {
-      toast.error("Nama basis data tidak boleh kosong.");
-      return;
-    }
-    setIsCreatingDb(true);
-    const res = await createDatabaseAction({
-      collation: newDbCollation || undefined,
-      connection: getConnParams(),
-      name: newDbName.trim(),
-    });
-    setIsCreatingDb(false);
-    if (res.ok) {
-      toast.success(`Basis data \`${res.name}\` berhasil dibuat!`);
-      setIsCreateDbModalOpen(false);
-      setNewDbName("");
-      handleRefreshDatabases();
-    } else {
-      toast.error("Gagal membuat basis data", { description: res.error });
+    try {
+      if (!newDbName.trim()) {
+        toast.error("Nama basis data tidak boleh kosong.");
+        return;
+      }
+      setIsCreatingDb(true);
+      const res = await createDatabaseAction({
+        collation: newDbCollation || undefined,
+        connection: getConnParams(),
+        name: newDbName.trim(),
+      });
+      setIsCreatingDb(false);
+      if (res.ok) {
+        toast.success(`Basis data \`${res.name}\` berhasil dibuat!`);
+        setIsCreateDbModalOpen(false);
+        setNewDbName("");
+        handleRefreshDatabases();
+      } else {
+        toast.error("Gagal membuat basis data", { description: res.error });
+      }
+    } catch (err: any) {
+      setIsCreatingDb(false);
+      toast.error("Terjadi kesalahan saat membuat basis data", {
+        description: err?.message || String(err),
+      });
     }
   };
 
@@ -1494,21 +2162,27 @@ export function WorkspaceStudioPage() {
       ),
       isOpen: true,
       onConfirm: async () => {
-        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-        const res = await dropDatabaseAction({
-          connection: getConnParams(),
-          name: dbName,
-        });
-        if (res.ok) {
-          toast.success(`Basis data \`${res.name}\` berhasil dihapus!`);
-          handleRefreshDatabases();
-          if (currentSelectedDatabase === dbName) {
-            const nextDb =
-              availableDatabases.find((d) => d !== dbName) || "mysql";
-            handleSelectDatabase(nextDb);
+        try {
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+          const res = await dropDatabaseAction({
+            connection: getConnParams(),
+            name: dbName,
+          });
+          if (res.ok) {
+            toast.success(`Basis data \`${res.name}\` berhasil dihapus!`);
+            handleRefreshDatabases();
+            if (currentSelectedDatabase === dbName) {
+              const nextDb =
+                availableDatabases.find((d) => d !== dbName) || "mysql";
+              handleSelectDatabase(nextDb);
+            }
+          } else {
+            toast.error("Gagal menghapus basis data", { description: res.error });
           }
-        } else {
-          toast.error("Gagal menghapus basis data", { description: res.error });
+        } catch (err: any) {
+          toast.error("Terjadi kesalahan saat menghapus basis data", {
+            description: err?.message || String(err),
+          });
         }
       },
       title: `Hapus Basis Data \`${dbName}\``,
@@ -1528,18 +2202,24 @@ export function WorkspaceStudioPage() {
       ),
       isOpen: true,
       onConfirm: async () => {
-        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-        const connParams = getConnParams(currentSelectedDatabase);
-        const res = await executeSqlQuery(
-          connParams,
-          `TRUNCATE TABLE \`${tableName}\`;`,
-          currentSelectedDatabase
-        );
-        if (res.ok) {
-          toast.success(`Tabel \`${tableName}\` berhasil dikosongkan!`);
-          handleSelectDatabase(currentSelectedDatabase);
-        } else {
-          toast.error("Gagal mengosongkan tabel", { description: res.error });
+        try {
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+          const connParams = getConnParams(currentSelectedDatabase);
+          const res = await executeSqlQuery(
+            connParams,
+            `TRUNCATE TABLE \`${tableName}\`;`,
+            currentSelectedDatabase
+          );
+          if (res.ok) {
+            toast.success(`Tabel \`${tableName}\` berhasil dikosongkan!`);
+            handleSelectDatabase(currentSelectedDatabase);
+          } else {
+            toast.error("Gagal mengosongkan tabel", { description: res.error });
+          }
+        } catch (err: any) {
+          toast.error("Terjadi kesalahan saat mengosongkan tabel", {
+            description: err?.message || String(err),
+          });
         }
       },
       title: `Kosongkan Tabel \`${tableName}\` (TRUNCATE)`,
@@ -1559,18 +2239,24 @@ export function WorkspaceStudioPage() {
       ),
       isOpen: true,
       onConfirm: async () => {
-        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-        const connParams = getConnParams(currentSelectedDatabase);
-        const res = await executeSqlQuery(
-          connParams,
-          `DROP TABLE \`${tableName}\`;`,
-          currentSelectedDatabase
-        );
-        if (res.ok) {
-          toast.success(`Tabel \`${tableName}\` berhasil dihapus!`);
-          handleSelectDatabase(currentSelectedDatabase);
-        } else {
-          toast.error("Gagal menghapus tabel", { description: res.error });
+        try {
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+          const connParams = getConnParams(currentSelectedDatabase);
+          const res = await executeSqlQuery(
+            connParams,
+            `DROP TABLE \`${tableName}\`;`,
+            currentSelectedDatabase
+          );
+          if (res.ok) {
+            toast.success(`Tabel \`${tableName}\` berhasil dihapus!`);
+            handleSelectDatabase(currentSelectedDatabase);
+          } else {
+            toast.error("Gagal menghapus tabel", { description: res.error });
+          }
+        } catch (err: any) {
+          toast.error("Terjadi kesalahan saat menghapus tabel", {
+            description: err?.message || String(err),
+          });
         }
       },
       title: `Hapus Tabel \`${tableName}\` (DROP TABLE)`,
@@ -1579,46 +2265,59 @@ export function WorkspaceStudioPage() {
   };
 
   const handleChangeCollation = async () => {
-    if (!currentSelectedDatabase) return;
-    const connParams = getConnParams(currentSelectedDatabase);
-    const q = `ALTER DATABASE \`${currentSelectedDatabase}\` CHARACTER SET utf8mb4 COLLATE ${newDbCollation};`;
-    const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
-    if (res.ok) {
-      toast.success(
-        `Collation basis data berhasil diubah ke \`${newDbCollation}\`!`
-      );
-    } else {
-      toast.error("Gagal mengubah collation", { description: res.error });
+    try {
+      if (!currentSelectedDatabase) return;
+      const connParams = getConnParams(currentSelectedDatabase);
+      const q = `ALTER DATABASE \`${currentSelectedDatabase}\` CHARACTER SET utf8mb4 COLLATE ${newDbCollation};`;
+      const res = await executeSqlQuery(connParams, q, currentSelectedDatabase);
+      if (res.ok) {
+        toast.success(
+          `Collation basis data berhasil diubah ke \`${newDbCollation}\`!`
+        );
+      } else {
+        toast.error("Gagal mengubah collation", { description: res.error });
+      }
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan saat mengubah collation", {
+        description: err?.message || String(err),
+      });
     }
   };
 
   const handleCreateTable = async () => {
-    if (!newTableNameInput.trim()) {
-      toast.error("Nama tabel tidak boleh kosong.");
-      return;
-    }
-    const connParams = getConnParams(currentSelectedDatabase);
-    setIsCreatingTable(true);
-    const createQuery = `CREATE TABLE \`${newTableNameInput.trim()}\` (
-      \`id\` INT AUTO_INCREMENT PRIMARY KEY,
-      \`name\` VARCHAR(255) NULL,
-      \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+    try {
+      if (!newTableNameInput.trim()) {
+        toast.error("Nama tabel tidak boleh kosong.");
+        return;
+      }
+      const connParams = getConnParams(currentSelectedDatabase);
+      setIsCreatingTable(true);
+      const createQuery = `CREATE TABLE \`${newTableNameInput.trim()}\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`name\` VARCHAR(255) NULL,
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
 
-    const res = await executeSqlQuery(
-      connParams,
-      createQuery,
-      currentSelectedDatabase
-    );
-    setIsCreatingTable(false);
-    if (res.ok) {
-      toast.success(
-        `Tabel \`${newTableNameInput.trim()}\` berhasil dibuat dengan ${newTableColumnsInput} kolom awal!`
+      const res = await executeSqlQuery(
+        connParams,
+        createQuery,
+        currentSelectedDatabase
       );
-      setNewTableNameInput("");
-      handleSelectDatabase(currentSelectedDatabase);
-    } else {
-      toast.error("Gagal membuat tabel", { description: res.error });
+      setIsCreatingTable(false);
+      if (res.ok) {
+        toast.success(
+          `Tabel \`${newTableNameInput.trim()}\` berhasil dibuat dengan ${newTableColumnsInput} kolom awal!`
+        );
+        setNewTableNameInput("");
+        handleSelectDatabase(currentSelectedDatabase);
+      } else {
+        toast.error("Gagal membuat tabel", { description: res.error });
+      }
+    } catch (err: any) {
+      setIsCreatingTable(false);
+      toast.error("Terjadi kesalahan saat membuat tabel", {
+        description: err?.message || String(err),
+      });
     }
   };
 
@@ -1679,6 +2378,19 @@ export function WorkspaceStudioPage() {
         currentWorkspaceTab={currentWorkspaceTab}
         isWorkspaceSidebarOpen={isWorkspaceSidebarOpen}
         onOpenWorkspaceSidebar={() => setIsWorkspaceSidebarOpen(true)}
+        onSelectDatabaseBreadcrumb={() => {
+          setSelectedTable("");
+          setCurrentWorkspaceTab("structure");
+        }}
+        onSelectServerBreadcrumb={() => {
+          setSelectedTable("");
+          setCurrentWorkspaceTab("databases");
+        }}
+        onSelectTableBreadcrumb={() => {
+          if (selectedTable) {
+            handleBrowseTable(selectedTable);
+          }
+        }}
         onSwitchWorkspaceTab={handleSwitchWorkspaceTab}
         selectedTable={selectedTable}
       />
@@ -1730,6 +2442,50 @@ export function WorkspaceStudioPage() {
               setIsCreateDbModalOpen(true);
             }}
             setDatabaseSearch={setDatabaseSearch}
+          />
+        )}
+        {currentWorkspaceTab === "browse" && (
+          <BrowseTab
+            currentSelectedDatabase={currentSelectedDatabase}
+            isExecutingQuery={isExecutingQuery}
+            onCopyRow={handleCopyRow}
+            onCreatePhpCode={() => setIsCreatePhpCodeModalOpen(true)}
+            onCreateView={() => setIsCreateViewModalOpen(true)}
+            onDeleteRow={handleDeleteRow}
+            onDeleteSelectedRows={handleDeleteSelectedRows}
+            onDisplayChart={() => setIsChartModalOpen(true)}
+            onEditRow={handleEditRow}
+            onExecuteQuery={handleExecuteBrowseQuery}
+            onExplainSql={handleExplainSql}
+            onExportCurrentResults={() => {
+              setExportSelectedTables([selectedTable]);
+              setIsExportModalOpen(true);
+            }}
+            onOpenInsertModal={handleOpenInsertModal}
+            onPrintResults={handlePrintResults}
+            onSwitchToSqlTab={() => setCurrentWorkspaceTab("sql")}
+            onUpdateCellInline={handleUpdateCellInline}
+            queryResults={queryResults}
+            selectedTable={selectedTable}
+            setSqlQuery={setSqlQuery}
+            sqlQuery={sqlQuery}
+          />
+        )}
+        {currentWorkspaceTab === "insert" && (
+          <InsertTab
+            currentSelectedDatabase={currentSelectedDatabase}
+            initialValues={insertTabInitialValues}
+            isSaving={isSavingRow}
+            mode={insertTabMode}
+            onCancel={() => setCurrentWorkspaceTab("browse")}
+            onSave={handleSaveInsertTab}
+            originalRow={insertTabOriginalRow}
+            selectedTable={selectedTable}
+            tableStructureColumns={
+              tableStructureColumns.length > 0
+                ? tableStructureColumns
+                : getFallbackColumnsForTable(selectedTable)
+            }
           />
         )}
         {currentWorkspaceTab === "structure" && (

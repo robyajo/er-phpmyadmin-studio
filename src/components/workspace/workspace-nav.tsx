@@ -7,6 +7,8 @@ import {
   FileUp,
   Layers,
   PanelLeft,
+  Play,
+  Plus,
   Search,
   Server,
   Sliders,
@@ -15,6 +17,7 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/types/connection";
@@ -28,6 +31,9 @@ interface WorkspaceNavProps {
   currentWorkspaceTab: WorkspaceTabId;
   isWorkspaceSidebarOpen: boolean;
   onOpenWorkspaceSidebar: () => void;
+  onSelectDatabaseBreadcrumb?: () => void;
+  onSelectServerBreadcrumb?: () => void;
+  onSelectTableBreadcrumb?: () => void;
   onSwitchWorkspaceTab: (tabId: WorkspaceTabId) => void;
   selectedTable: string;
 }
@@ -39,10 +45,23 @@ export function WorkspaceNav({
   currentWorkspaceTab,
   isWorkspaceSidebarOpen,
   onOpenWorkspaceSidebar,
+  onSelectDatabaseBreadcrumb,
+  onSelectServerBreadcrumb,
+  onSelectTableBreadcrumb,
   onSwitchWorkspaceTab,
   selectedTable,
 }: WorkspaceNavProps) {
+  // phpMyAdmin tabs
   const tabs = [
+    ...(selectedTable
+      ? [
+          {
+            icon: Play,
+            id: "browse" as WorkspaceTabId,
+            label: "Browse",
+          },
+        ]
+      : []),
     { icon: Database, id: "databases" as WorkspaceTabId, label: "Databases" },
     {
       icon: TableIcon,
@@ -53,6 +72,15 @@ export function WorkspaceNav({
     },
     { icon: Code2, id: "sql" as WorkspaceTabId, label: "SQL" },
     { icon: Search, id: "search" as WorkspaceTabId, label: "Search" },
+    ...(selectedTable
+      ? [
+          {
+            icon: Plus,
+            id: "insert" as WorkspaceTabId,
+            label: "Insert",
+          },
+        ]
+      : []),
     { icon: Sliders, id: "operations" as WorkspaceTabId, label: "Operations" },
     { icon: FileDown, id: "export" as WorkspaceTabId, label: "Export" },
     { icon: FileUp, id: "import" as WorkspaceTabId, label: "Import" },
@@ -71,12 +99,12 @@ export function WorkspaceNav({
 
   return (
     <>
-      {/* Top Breadcrumb Bar */}
-      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-border border-b bg-card px-3 sm:px-4">
+      {/* Top Breadcrumb Bar (phpMyAdmin style: Server: ... » Database: ... » Table: ...) */}
+      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-1.5 overflow-hidden text-xs sm:gap-2">
           {!isWorkspaceSidebarOpen && (
             <Button
-              className="flex h-7 shrink-0 items-center gap-1.5 border-border bg-muted/40 px-2 text-primary hover:bg-muted hover:text-foreground"
+              className="flex h-7 shrink-0 items-center gap-1.5 border-border bg-muted/40 px-2 text-primary hover:bg-muted hover:text-foreground cursor-pointer"
               onClick={onOpenWorkspaceSidebar}
               size="sm"
               title="Tampilkan Explorer Basis Data"
@@ -91,23 +119,52 @@ export function WorkspaceNav({
               )}
             </Button>
           )}
-          <span className="max-w-[100px] truncate font-semibold text-foreground sm:max-w-[160px] md:max-w-[220px]">
-            {activeConnectedProfile?.name}
-          </span>
-          <span className="shrink-0 text-muted-foreground/70">/</span>
-          <span className="max-w-[100px] truncate font-medium font-mono text-emerald-500 sm:max-w-[160px]">
-            {currentSelectedDatabase}
-          </span>
-          {selectedTable && (
+
+          {/* Server breadcrumb */}
+          <button
+            className="flex items-center gap-1 max-w-[140px] sm:max-w-[180px] md:max-w-[220px] truncate font-medium text-foreground hover:text-primary hover:underline cursor-pointer"
+            onClick={onSelectServerBreadcrumb}
+            title="Kembali ke level Server"
+            type="button"
+          >
+            <Server className="size-3 text-muted-foreground shrink-0" />
+            <span className="truncate">
+              Server: {activeConnectedProfile?.name || activeConnectedProfile?.host || "localhost"}
+            </span>
+          </button>
+
+          {currentSelectedDatabase && (
             <>
-              <span className="shrink-0 text-muted-foreground/70">/</span>
-              <span className="max-w-[100px] truncate font-mono text-primary sm:max-w-[160px]">
-                {selectedTable}
-              </span>
+              <span className="shrink-0 text-muted-foreground/60 select-none">»</span>
+              <button
+                className="flex items-center gap-1 max-w-[120px] sm:max-w-[160px] truncate font-mono text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                onClick={onSelectDatabaseBreadcrumb}
+                title={`Basis Data: ${currentSelectedDatabase}`}
+                type="button"
+              >
+                <Database className="size-3 shrink-0" />
+                <span className="truncate">Database: {currentSelectedDatabase}</span>
+              </button>
             </>
           )}
+
+          {selectedTable && (
+            <>
+              <span className="shrink-0 text-muted-foreground/60 select-none">»</span>
+              <button
+                className="flex items-center gap-1 max-w-[120px] sm:max-w-[160px] truncate font-mono text-primary font-semibold hover:underline cursor-pointer"
+                onClick={onSelectTableBreadcrumb}
+                title={`Tabel: ${selectedTable}`}
+                type="button"
+              >
+                <TableIcon className="size-3 shrink-0" />
+                <span className="truncate">Table: {selectedTable}</span>
+              </button>
+            </>
+          )}
+
           <Badge
-            className="ml-1 hidden shrink-0 border-emerald-500/30 bg-emerald-500/10 text-[9px] text-emerald-500 lg:inline-flex"
+            className="ml-1 hidden shrink-0 border-emerald-500/30 bg-emerald-500/10 text-[9px] text-emerald-500 lg:inline-flex font-mono"
             variant="outline"
           >
             Socket TCP 3306
@@ -116,14 +173,14 @@ export function WorkspaceNav({
       </div>
 
       {/* phpMyAdmin Tab Navigation */}
-      <div className="no-scrollbar flex shrink-0 select-none items-center gap-0.5 overflow-x-auto border-border border-b bg-card px-2">
+      <div className="no-scrollbar flex shrink-0 select-none items-center gap-0.5 overflow-x-auto border-b border-border bg-card px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentWorkspaceTab === tab.id;
           return (
             <button
               className={cn(
-                "flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-3 font-medium text-xs transition-colors",
+                "flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-3 font-medium text-xs transition-colors cursor-pointer",
                 isActive
                   ? "border-primary bg-accent/40 font-semibold text-primary"
                   : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"

@@ -1,4 +1,5 @@
 import { CLOUD_ENDPOINTS, LOCAL_STORAGE_KEYS } from "@/constants";
+import { INITIAL_PROFILES } from "@/components/workspace/constants";
 import type {
   BillingCycle,
   CloudSyncConfig,
@@ -15,12 +16,358 @@ import type {
 import { cloudSyncSnapshotSchema } from "@/types/cloud-sync";
 import type { Profile } from "@/types/connection";
 
-const MEMORY_STORE: {
-  config: CloudSyncConfig;
+// -------------------------------------------------------------
+// SEED DATA PER SUBSCRIPTION TIER (Multi-User Data Isolation)
+// -------------------------------------------------------------
+export const SEED_PROFILES_BY_TIER: Record<"business" | "pro" | "team", Profile[]> = {
+  business: [
+    {
+      connection_revision: 3,
+      created_at: "2026-10-20T08:00:00.000Z",
+      database: "enterprise_prod_db",
+      db_type: "mysql",
+      environment: "Production",
+      favorite: true,
+      has_saved_password: true,
+      host: "db-prod.enterprise.internal",
+      id: "b1c2d3e4-business-prod-cluster-0001",
+      last_used_at: "2026-10-31T08:30:00.000Z",
+      method: "direct",
+      name: "Enterprise Production Cluster",
+      port: 3306,
+      ssh: null,
+      tls: { ca: "/etc/ssl/certs/enterprise-ca.pem", cert: null, enabled: true, key: null, verify: true },
+      updated_at: "2026-10-31T08:30:00.000Z",
+      username: "enterprise_admin",
+    },
+    {
+      connection_revision: 2,
+      created_at: "2026-10-22T10:15:00.000Z",
+      database: "warehouse_bi",
+      db_type: "mariadb",
+      environment: "Production",
+      favorite: true,
+      has_saved_password: false,
+      host: "dw.analytics.corp",
+      id: "b2c3d4e5-business-dw-analytics-0002",
+      last_used_at: "2026-10-30T17:45:00.000Z",
+      method: "direct",
+      name: "Analytics Data Warehouse",
+      port: 3306,
+      ssh: null,
+      tls: { ca: null, cert: null, enabled: true, key: null, verify: true },
+      updated_at: "2026-10-30T17:45:00.000Z",
+      username: "dw_analyst",
+    },
+    {
+      connection_revision: 1,
+      created_at: "2026-10-25T11:00:00.000Z",
+      database: "erp_finance",
+      db_type: "auto",
+      environment: "Staging",
+      favorite: false,
+      has_saved_password: false,
+      host: "10.0.12.8",
+      id: "b3c4d5e6-business-erp-staging-0003",
+      last_used_at: "2026-10-29T14:10:00.000Z",
+      method: "ssh",
+      name: "ERP Staging Gateway (SSH)",
+      port: 3306,
+      ssh: {
+        auth_type: "key",
+        host: "bastion.corp.net",
+        key: "~/.ssh/id_rsa_enterprise",
+        passphrase: "",
+        password: "",
+        port: 22,
+        username: "sysadmin",
+      },
+      tls: { ca: null, cert: null, enabled: false, key: null, verify: true },
+      updated_at: "2026-10-29T14:10:00.000Z",
+      username: "erp_dev",
+    },
+  ],
+  team: [
+    {
+      connection_revision: 2,
+      created_at: "2026-10-23T09:00:00.000Z",
+      database: "team_shared_db",
+      db_type: "mysql",
+      environment: "Staging",
+      favorite: true,
+      has_saved_password: false,
+      host: "10.0.8.20",
+      id: "t1c2d3e4-team-shared-microservices-0001",
+      last_used_at: "2026-10-30T11:20:00.000Z",
+      method: "direct",
+      name: "Team Shared Microservices DB",
+      port: 3306,
+      ssh: null,
+      tls: { ca: null, cert: null, enabled: false, key: null, verify: true },
+      updated_at: "2026-10-30T11:20:00.000Z",
+      username: "team_lead",
+    },
+    {
+      connection_revision: 1,
+      created_at: "2026-10-24T14:00:00.000Z",
+      database: "qa_test_db",
+      db_type: "mariadb",
+      environment: "Staging",
+      favorite: false,
+      has_saved_password: false,
+      host: "10.0.8.50",
+      id: "t2c3d4e5-team-qa-testing-0002",
+      last_used_at: "2026-10-28T16:00:00.000Z",
+      method: "direct",
+      name: "QA Testing Cluster",
+      port: 3306,
+      ssh: null,
+      tls: { ca: null, cert: null, enabled: false, key: null, verify: true },
+      updated_at: "2026-10-28T16:00:00.000Z",
+      username: "qa_tester",
+    },
+  ],
+  pro: [
+    {
+      connection_revision: 2,
+      created_at: "2026-10-20T09:00:00.000Z",
+      database: "dev_store",
+      db_type: "mariadb",
+      environment: "Local",
+      favorite: true,
+      has_saved_password: false,
+      host: "127.0.0.1",
+      id: "p1c2d3e4-pro-dev-mariadb-0001",
+      last_used_at: "2026-10-31T09:15:00.000Z",
+      method: "direct",
+      name: "Pro Dev MariaDB (Port 3306)",
+      port: 3306,
+      ssh: null,
+      tls: { ca: null, cert: null, enabled: false, key: null, verify: true },
+      updated_at: "2026-10-31T09:15:00.000Z",
+      username: "root",
+    },
+    {
+      connection_revision: 1,
+      created_at: "2026-10-21T08:00:00.000Z",
+      database: "cloud_staging_db",
+      db_type: "mysql",
+      environment: "Staging",
+      favorite: true,
+      has_saved_password: false,
+      host: "10.0.4.15",
+      id: "p2c3d4e5-pro-staging-api-0002",
+      last_used_at: "2026-10-30T20:45:00.000Z",
+      method: "ssh",
+      name: "Staging Cloud Replica",
+      port: 3306,
+      ssh: {
+        auth_type: "key",
+        host: "bastion.staging.dev",
+        key: "~/.ssh/id_ed25519",
+        passphrase: "",
+        password: "",
+        port: 22,
+        username: "ubuntu",
+      },
+      tls: { ca: null, cert: null, enabled: false, key: null, verify: true },
+      updated_at: "2026-10-30T20:45:00.000Z",
+      username: "staging_user",
+    },
+  ],
+};
+
+export const SEED_JOURNAL_BY_TIER: Record<"business" | "pro" | "team", UserActionEntry[]> = {
+  business: [
+    {
+      action: "export",
+      category: "export_import",
+      database: "enterprise_prod_db",
+      details: { compression: "gzip", format: "sql" },
+      id: "act-biz-01",
+      profileId: "b1c2d3e4-business-prod-cluster-0001",
+      profileName: "Enterprise Production Cluster",
+      syncStatus: "synced",
+      timestamp: "2026-10-31T08:35:00.000Z",
+    },
+    {
+      action: "table_maintenance",
+      category: "table",
+      database: "enterprise_prod_db",
+      details: { subAction: "OPTIMIZE" },
+      id: "act-biz-02",
+      profileId: "b1c2d3e4-business-prod-cluster-0001",
+      profileName: "Enterprise Production Cluster",
+      syncStatus: "synced",
+      table: "orders",
+      timestamp: "2026-10-31T08:40:00.000Z",
+    },
+  ],
+  team: [
+    {
+      action: "table_maintenance",
+      category: "table",
+      database: "team_shared_db",
+      details: { changes: "ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT 'active'" },
+      id: "act-team-01",
+      profileId: "t1c2d3e4-team-shared-microservices-0001",
+      profileName: "Team Shared Microservices DB",
+      syncStatus: "synced",
+      table: "releases",
+      timestamp: "2026-10-30T11:25:00.000Z",
+    },
+  ],
+  pro: [
+    {
+      action: "database_create",
+      category: "database",
+      database: "dev_store",
+      details: { collation: "utf8mb4_unicode_ci" },
+      id: "act-pro-01",
+      profileId: "p1c2d3e4-pro-dev-mariadb-0001",
+      profileName: "Pro Dev MariaDB (Port 3306)",
+      syncStatus: "synced",
+      timestamp: "2026-10-31T09:20:00.000Z",
+    },
+  ],
+};
+
+export const SEED_QUERIES_BY_TIER: Record<"business" | "pro" | "team", QueryHistoryEntry[]> = {
+  business: [
+    {
+      database: "enterprise_prod_db",
+      durationMs: 42,
+      id: "qry-biz-01",
+      profileId: "b1c2d3e4-business-prod-cluster-0001",
+      query: "SELECT COUNT(*) AS total_orders, SUM(amount) AS gross_revenue FROM enterprise_prod_db.transactions WHERE status = 'completed';",
+      rowsAffected: 1,
+      success: true,
+      timestamp: "2026-10-31T08:32:00.000Z",
+    },
+    {
+      database: "warehouse_bi",
+      durationMs: 85,
+      id: "qry-biz-02",
+      profileId: "b2c3d4e5-business-dw-analytics-0002",
+      query: "EXPLAIN SELECT * FROM warehouse_bi.monthly_financial_aggregates WHERE fiscal_year = 2026;",
+      rowsAffected: 12,
+      success: true,
+      timestamp: "2026-10-30T17:48:00.000Z",
+    },
+  ],
+  team: [
+    {
+      database: "team_shared_db",
+      durationMs: 18,
+      id: "qry-team-01",
+      profileId: "t1c2d3e4-team-shared-microservices-0001",
+      query: "SELECT * FROM team_shared_db.releases ORDER BY id DESC LIMIT 20;",
+      rowsAffected: 20,
+      success: true,
+      timestamp: "2026-10-30T11:22:00.000Z",
+    },
+  ],
+  pro: [
+    {
+      database: "dev_store",
+      durationMs: 4,
+      id: "qry-pro-01",
+      profileId: "p1c2d3e4-pro-dev-mariadb-0001",
+      query: "SHOW FULL TABLES WHERE Table_type = 'BASE TABLE';",
+      rowsAffected: 8,
+      success: true,
+      timestamp: "2026-10-31T09:18:00.000Z",
+    },
+  ],
+};
+
+// -------------------------------------------------------------
+// USER IDENTITY & SCOPED STORAGE HELPER
+// -------------------------------------------------------------
+export function getUserScopeKey(emailOrId?: string): string {
+  if (!emailOrId) {
+    const config = getCloudSyncConfig();
+    emailOrId = config.userEmail || config.userId;
+  }
+  if (!emailOrId) return "guest";
+  return emailOrId.toLowerCase().replace(/[^a-z0-9_]/g, "_");
+}
+
+export function getScopedKey(baseKey: string, scope?: string): string {
+  const resolvedScope = scope || getUserScopeKey();
+  if (resolvedScope === "guest") {
+    return baseKey; // Backward compatibility: free/guest users use standard base keys
+  }
+  return `${baseKey}_${resolvedScope}`;
+}
+
+export function getInitialSeedProfilesForScope(scope = getUserScopeKey()): Profile[] {
+  if (scope.includes("business")) {
+    return SEED_PROFILES_BY_TIER.business;
+  }
+  if (scope.includes("team")) {
+    return SEED_PROFILES_BY_TIER.team;
+  }
+  if (scope.includes("pro")) {
+    return SEED_PROFILES_BY_TIER.pro;
+  }
+  return INITIAL_PROFILES;
+}
+
+export function getInitialSeedJournalForScope(scope = getUserScopeKey()): UserActionEntry[] {
+  if (scope.includes("business")) {
+    return SEED_JOURNAL_BY_TIER.business;
+  }
+  if (scope.includes("team")) {
+    return SEED_JOURNAL_BY_TIER.team;
+  }
+  if (scope.includes("pro")) {
+    return SEED_JOURNAL_BY_TIER.pro;
+  }
+  return [];
+}
+
+export function getInitialSeedQueriesForScope(scope = getUserScopeKey()): QueryHistoryEntry[] {
+  if (scope.includes("business")) {
+    return SEED_QUERIES_BY_TIER.business;
+  }
+  if (scope.includes("team")) {
+    return SEED_QUERIES_BY_TIER.team;
+  }
+  if (scope.includes("pro")) {
+    return SEED_QUERIES_BY_TIER.pro;
+  }
+  return [];
+}
+
+interface ScopedMemoryStore {
+  cachedProfiles: Profile[];
   journal: UserActionEntry[];
   queryHistory: QueryHistoryEntry[];
   snippets: SavedSnippet[];
-} = {
+}
+
+const MEMORY_SCOPES: Record<string, ScopedMemoryStore> = {};
+
+export function resetMemoryStores(): void {
+  for (const key of Object.keys(MEMORY_SCOPES)) {
+    delete MEMORY_SCOPES[key];
+  }
+}
+
+function getScopedMemoryStore(scope = getUserScopeKey()): ScopedMemoryStore {
+  if (!MEMORY_SCOPES[scope]) {
+    MEMORY_SCOPES[scope] = {
+      cachedProfiles: [],
+      journal: [],
+      queryHistory: [],
+      snippets: [],
+    };
+  }
+  return MEMORY_SCOPES[scope];
+}
+
+const GLOBAL_CONFIG_STORE: { config: CloudSyncConfig } = {
   config: {
     apiEndpoint: CLOUD_ENDPOINTS.SYNC_URL,
     authEndpoint: CLOUD_ENDPOINTS.AUTH_URL,
@@ -30,12 +377,7 @@ const MEMORY_STORE: {
     status: "idle",
     subscriptionTier: "free",
   },
-  journal: [],
-  queryHistory: [],
-  snippets: [],
 };
-
-let cachedProfiles: Profile[] = [];
 
 /**
  * Smart merge local profiles with remote profiles.
@@ -86,31 +428,64 @@ export function mergeProfilesLists(
   return Array.from(profileMap.values());
 }
 
-export function setCachedProfiles(profiles: Profile[]): void {
-  if (Array.isArray(profiles)) {
-    cachedProfiles = profiles;
-  }
-}
+export function getStoredProfiles(scope?: string): Profile[] {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.PROFILES, resolvedScope);
 
-export function getCachedProfiles(): Profile[] {
-  if (cachedProfiles.length > 0) {
-    return cachedProfiles;
-  }
   if (isStorageAvailable()) {
     try {
-      const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.PROFILES);
+      const raw = localStorage.getItem(storageKey);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          cachedProfiles = parsed;
-          return cachedProfiles;
+          return parsed;
         }
       }
     } catch {
       // ignore
     }
   }
-  return cachedProfiles;
+
+  const mem = getScopedMemoryStore(resolvedScope);
+  if (mem.cachedProfiles && mem.cachedProfiles.length > 0) {
+    return mem.cachedProfiles;
+  }
+
+  // Provide initial seed profiles tailored to account tier if not stored yet
+  const seeded = getInitialSeedProfilesForScope(resolvedScope);
+  if (isStorageAvailable()) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(seeded));
+    } catch {
+      // ignore
+    }
+  }
+  mem.cachedProfiles = seeded;
+  return seeded;
+}
+
+export function setStoredProfiles(profiles: Profile[], scope?: string): void {
+  if (!Array.isArray(profiles)) return;
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.PROFILES, resolvedScope);
+
+  if (isStorageAvailable()) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(profiles));
+    } catch {
+      // ignore
+    }
+  }
+  const mem = getScopedMemoryStore(resolvedScope);
+  mem.cachedProfiles = profiles;
+}
+
+export function setCachedProfiles(profiles: Profile[]): void {
+  setStoredProfiles(profiles);
+}
+
+export function getCachedProfiles(): Profile[] {
+  return getStoredProfiles();
 }
 
 function isStorageAvailable(): boolean {
@@ -124,19 +499,49 @@ function generateId(): string {
   return `id-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-export function getStoredJournal(): UserActionEntry[] {
-  if (!isStorageAvailable()) return MEMORY_STORE.journal;
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return MEMORY_STORE.journal;
+export function getStoredJournal(scope?: string): UserActionEntry[] {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL, resolvedScope);
+
+  if (isStorageAvailable()) {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch {
+      // ignore
+    }
   }
+
+  const mem = getScopedMemoryStore(resolvedScope);
+  if (mem.journal && mem.journal.length > 0) {
+    return mem.journal;
+  }
+
+  const seeded = getInitialSeedJournalForScope(resolvedScope);
+  if (seeded.length > 0) {
+    if (isStorageAvailable()) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(seeded));
+      } catch {
+        // ignore
+      }
+    }
+    mem.journal = seeded;
+    return seeded;
+  }
+
+  return [];
 }
 
 export function recordUserAction(
-  entry: Omit<UserActionEntry, "id" | "timestamp" | "syncStatus">
+  entry: Omit<UserActionEntry, "id" | "timestamp" | "syncStatus">,
+  scope?: string
 ): UserActionEntry {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL, resolvedScope);
+
   const newAction: UserActionEntry = {
     ...entry,
     id: generateId(),
@@ -144,78 +549,108 @@ export function recordUserAction(
     timestamp: new Date().toISOString(),
   };
 
-  const current = getStoredJournal();
+  const current = getStoredJournal(resolvedScope);
   const updated = [newAction, ...current].slice(0, 1000);
 
   if (isStorageAvailable()) {
     try {
-      localStorage.setItem(
-        LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL,
-        JSON.stringify(updated)
-      );
+      localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch {
-      MEMORY_STORE.journal = updated;
+      // ignore
     }
-  } else {
-    MEMORY_STORE.journal = updated;
   }
+  getScopedMemoryStore(resolvedScope).journal = updated;
 
   return newAction;
 }
 
-export function getStoredQueryHistory(): QueryHistoryEntry[] {
-  if (!isStorageAvailable()) return MEMORY_STORE.queryHistory;
-  try {
-    const raw = localStorage.getItem(
-      LOCAL_STORAGE_KEYS.CLOUD_SYNC_QUERY_HISTORY
-    );
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return MEMORY_STORE.queryHistory;
+export function getStoredQueryHistory(scope?: string): QueryHistoryEntry[] {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_QUERY_HISTORY, resolvedScope);
+
+  if (isStorageAvailable()) {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch {
+      // ignore
+    }
   }
+
+  const mem = getScopedMemoryStore(resolvedScope);
+  if (mem.queryHistory && mem.queryHistory.length > 0) {
+    return mem.queryHistory;
+  }
+
+  const seeded = getInitialSeedQueriesForScope(resolvedScope);
+  if (seeded.length > 0) {
+    if (isStorageAvailable()) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(seeded));
+      } catch {
+        // ignore
+      }
+    }
+    mem.queryHistory = seeded;
+    return seeded;
+  }
+
+  return [];
 }
 
 export function recordQueryHistory(
-  entry: Omit<QueryHistoryEntry, "id" | "timestamp">
+  entry: Omit<QueryHistoryEntry, "id" | "timestamp">,
+  scope?: string
 ): QueryHistoryEntry {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_QUERY_HISTORY, resolvedScope);
+
   const newQuery: QueryHistoryEntry = {
     ...entry,
     id: generateId(),
     timestamp: new Date().toISOString(),
   };
 
-  const current = getStoredQueryHistory();
+  const current = getStoredQueryHistory(resolvedScope);
   const updated = [newQuery, ...current].slice(0, 500);
 
   if (isStorageAvailable()) {
     try {
-      localStorage.setItem(
-        LOCAL_STORAGE_KEYS.CLOUD_SYNC_QUERY_HISTORY,
-        JSON.stringify(updated)
-      );
+      localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch {
-      MEMORY_STORE.queryHistory = updated;
+      // ignore
     }
-  } else {
-    MEMORY_STORE.queryHistory = updated;
   }
+  getScopedMemoryStore(resolvedScope).queryHistory = updated;
 
   return newQuery;
 }
 
-export function getStoredSnippets(): SavedSnippet[] {
-  if (!isStorageAvailable()) return MEMORY_STORE.snippets;
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.CLOUD_SYNC_SNIPPETS);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return MEMORY_STORE.snippets;
+export function getStoredSnippets(scope?: string): SavedSnippet[] {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_SNIPPETS, resolvedScope);
+
+  if (isStorageAvailable()) {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) return JSON.parse(raw);
+    } catch {
+      // ignore
+    }
   }
+
+  const mem = getScopedMemoryStore(resolvedScope);
+  return mem.snippets || [];
 }
 
 export function saveSnippet(
-  snippet: Omit<SavedSnippet, "id" | "createdAt" | "updatedAt">
+  snippet: Omit<SavedSnippet, "id" | "createdAt" | "updatedAt">,
+  scope?: string
 ): SavedSnippet {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_SNIPPETS, resolvedScope);
   const now = new Date().toISOString();
   const newSnippet: SavedSnippet = {
     ...snippet,
@@ -224,41 +659,35 @@ export function saveSnippet(
     updatedAt: now,
   };
 
-  const current = getStoredSnippets();
+  const current = getStoredSnippets(resolvedScope);
   const updated = [newSnippet, ...current];
 
   if (isStorageAvailable()) {
     try {
-      localStorage.setItem(
-        LOCAL_STORAGE_KEYS.CLOUD_SYNC_SNIPPETS,
-        JSON.stringify(updated)
-      );
+      localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch {
-      MEMORY_STORE.snippets = updated;
+      // ignore
     }
-  } else {
-    MEMORY_STORE.snippets = updated;
   }
+  getScopedMemoryStore(resolvedScope).snippets = updated;
 
   return newSnippet;
 }
 
-export function deleteSnippet(id: string): void {
-  const current = getStoredSnippets();
+export function deleteSnippet(id: string, scope?: string): void {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_SNIPPETS, resolvedScope);
+  const current = getStoredSnippets(resolvedScope);
   const updated = current.filter((s) => s.id !== id);
 
   if (isStorageAvailable()) {
     try {
-      localStorage.setItem(
-        LOCAL_STORAGE_KEYS.CLOUD_SYNC_SNIPPETS,
-        JSON.stringify(updated)
-      );
+      localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch {
-      MEMORY_STORE.snippets = updated;
+      // ignore
     }
-  } else {
-    MEMORY_STORE.snippets = updated;
   }
+  getScopedMemoryStore(resolvedScope).snippets = updated;
 }
 
 export function normalizeCloudEndpoint(url?: string): string {
@@ -273,15 +702,15 @@ export function normalizeCloudEndpoint(url?: string): string {
 }
 
 export function getCloudSyncConfig(): CloudSyncConfig {
-  let baseConfig = MEMORY_STORE.config;
+  let baseConfig = GLOBAL_CONFIG_STORE.config;
   if (isStorageAvailable()) {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.CLOUD_SYNC_CONFIG);
       if (raw) {
-        baseConfig = { ...MEMORY_STORE.config, ...JSON.parse(raw) };
+        baseConfig = { ...GLOBAL_CONFIG_STORE.config, ...JSON.parse(raw) };
       }
     } catch {
-      baseConfig = MEMORY_STORE.config;
+      baseConfig = GLOBAL_CONFIG_STORE.config;
     }
   }
   if (baseConfig.apiEndpoint) {
@@ -337,10 +766,10 @@ export function updateCloudSyncConfig(
         JSON.stringify(updated)
       );
     } catch {
-      MEMORY_STORE.config = updated;
+      GLOBAL_CONFIG_STORE.config = updated;
     }
   } else {
-    MEMORY_STORE.config = updated;
+    GLOBAL_CONFIG_STORE.config = updated;
   }
 
   return updated;
@@ -348,13 +777,15 @@ export function updateCloudSyncConfig(
 
 export function buildCloudSyncSnapshot(
   profiles?: Profile[],
-  preferencesOverride?: Partial<CloudSyncPreferences>
+  preferencesOverride?: Partial<CloudSyncPreferences>,
+  userScope?: string
 ): CloudSyncSnapshot {
+  const currentScope = userScope || getUserScopeKey();
   const resolvedProfiles =
-    profiles && profiles.length > 0 ? profiles : getCachedProfiles();
-  const journal = getStoredJournal();
-  const queryHistory = getStoredQueryHistory();
-  const snippets = getStoredSnippets();
+    profiles && profiles.length > 0 ? profiles : getStoredProfiles(currentScope);
+  const journal = getStoredJournal(currentScope);
+  const queryHistory = getStoredQueryHistory(currentScope);
+  const snippets = getStoredSnippets(currentScope);
   const config = getCloudSyncConfig();
 
   let appSettings: any = null;
@@ -417,7 +848,10 @@ export function exportCloudBackupJson(
   return JSON.stringify(snapshot, null, 2);
 }
 
-export function importCloudBackupJson(jsonString: string): {
+export function importCloudBackupJson(
+  jsonString: string,
+  userScope?: string
+): {
   data?: CloudSyncSnapshot;
   error?: string;
   success: boolean;
@@ -437,13 +871,16 @@ export function importCloudBackupJson(jsonString: string): {
     }
 
     const snapshot = validated.data;
+    const resolvedScope = userScope || getUserScopeKey();
 
     if (isStorageAvailable()) {
       try {
         if (snapshot.profiles?.length) {
           let mergedProfiles = snapshot.profiles;
           try {
-            const rawStored = localStorage.getItem(LOCAL_STORAGE_KEYS.PROFILES);
+            const rawStored = localStorage.getItem(
+              getScopedKey(LOCAL_STORAGE_KEYS.PROFILES, resolvedScope)
+            );
             if (rawStored) {
               const currentLocal = JSON.parse(rawStored);
               if (Array.isArray(currentLocal) && currentLocal.length > 0) {
@@ -453,35 +890,47 @@ export function importCloudBackupJson(jsonString: string): {
           } catch {
             // fallback
           }
-          localStorage.setItem(
-            LOCAL_STORAGE_KEYS.PROFILES,
-            JSON.stringify(mergedProfiles)
-          );
-          setCachedProfiles(mergedProfiles);
+          setStoredProfiles(mergedProfiles, resolvedScope);
         }
         if (snapshot.journal?.length) {
           localStorage.setItem(
-            LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL,
+            getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL, resolvedScope),
             JSON.stringify(snapshot.journal)
           );
+          getScopedMemoryStore(resolvedScope).journal = snapshot.journal;
         }
         if (snapshot.queryHistory?.length) {
           localStorage.setItem(
-            LOCAL_STORAGE_KEYS.CLOUD_SYNC_QUERY_HISTORY,
+            getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_QUERY_HISTORY, resolvedScope),
             JSON.stringify(snapshot.queryHistory)
           );
+          getScopedMemoryStore(resolvedScope).queryHistory = snapshot.queryHistory;
         }
         if (snapshot.snippets?.length) {
           localStorage.setItem(
-            LOCAL_STORAGE_KEYS.CLOUD_SYNC_SNIPPETS,
+            getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_SNIPPETS, resolvedScope),
             JSON.stringify(snapshot.snippets)
           );
+          getScopedMemoryStore(resolvedScope).snippets = snapshot.snippets;
         }
       } catch (err: any) {
         return {
           error: `Gagal menyimpan ke penyimpanan lokal: ${err?.message || err}`,
           success: false,
         };
+      }
+    } else {
+      if (snapshot.profiles?.length) {
+        setStoredProfiles(snapshot.profiles, resolvedScope);
+      }
+      if (snapshot.journal?.length) {
+        getScopedMemoryStore(resolvedScope).journal = snapshot.journal;
+      }
+      if (snapshot.queryHistory?.length) {
+        getScopedMemoryStore(resolvedScope).queryHistory = snapshot.queryHistory;
+      }
+      if (snapshot.snippets?.length) {
+        getScopedMemoryStore(resolvedScope).snippets = snapshot.snippets;
       }
     }
 
@@ -519,7 +968,7 @@ export async function syncWithCloudBackend(
     };
   }
   const resolvedProfiles =
-    profiles && profiles.length > 0 ? profiles : getCachedProfiles();
+    profiles && profiles.length > 0 ? profiles : getStoredProfiles();
   const token = (tokenOverride || config.apiToken || config.userEmail || "user_pro_sync").trim();
   const baseEndpoint = normalizeCloudEndpoint(endpointOverride || config.apiEndpoint);
   const pushUrl = baseEndpoint.endsWith("/push") ? baseEndpoint : `${baseEndpoint}/push`;
@@ -553,20 +1002,20 @@ export async function syncWithCloudBackend(
       );
     }
 
-    // Tandai seluruh jurnal sebagai synced
-    const journal = getStoredJournal().map((j) => ({
+    // Tandai seluruh jurnal sebagai synced untuk akun aktif
+    const currentScope = getUserScopeKey();
+    const journal = getStoredJournal(currentScope).map((j) => ({
       ...j,
       syncStatus: "synced" as const,
     }));
 
     if (isStorageAvailable()) {
       localStorage.setItem(
-        LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL,
+        getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL, currentScope),
         JSON.stringify(journal)
       );
-    } else {
-      MEMORY_STORE.journal = journal;
     }
+    getScopedMemoryStore(currentScope).journal = journal;
 
     const now = new Date().toISOString();
     updateCloudSyncConfig({
@@ -612,7 +1061,7 @@ export function triggerAutoSyncToCloud(
   syncedItems?: number;
 }> {
   if (profiles && profiles.length > 0) {
-    setCachedProfiles(profiles);
+    setStoredProfiles(profiles);
   }
 
   const config = getCloudSyncConfig();
@@ -631,11 +1080,11 @@ export function triggerAutoSyncToCloud(
       return Promise.resolve({ skipped: true, success: false });
     }
     isAutoSyncInProgress = true;
-    return syncWithCloudBackend(profiles || getCachedProfiles()).finally(() => {
+    return syncWithCloudBackend(profiles || getStoredProfiles()).finally(() => {
       isAutoSyncInProgress = false;
       if (hasPendingSyncRequest) {
         hasPendingSyncRequest = false;
-        triggerAutoSyncToCloud(getCachedProfiles(), 300);
+        triggerAutoSyncToCloud(getStoredProfiles(), 300);
       }
     });
   }
@@ -649,7 +1098,7 @@ export function triggerAutoSyncToCloud(
       }
       isAutoSyncInProgress = true;
       try {
-        const res = await syncWithCloudBackend(profiles || getCachedProfiles());
+        const res = await syncWithCloudBackend(profiles || getStoredProfiles());
         resolve(res);
       } catch (err: any) {
         resolve({ error: err?.message || String(err), success: false });
@@ -657,7 +1106,7 @@ export function triggerAutoSyncToCloud(
         isAutoSyncInProgress = false;
         if (hasPendingSyncRequest) {
           hasPendingSyncRequest = false;
-          triggerAutoSyncToCloud(getCachedProfiles(), 300);
+          triggerAutoSyncToCloud(getStoredProfiles(), 300);
         }
       }
     }, delayMs);
@@ -858,6 +1307,56 @@ export async function loginToCloudBackend(
       user: resJson.user,
     };
   } catch (err: any) {
+    // Fallback offline / local mock for seeded demo accounts
+    const emailLower = email.trim().toLowerCase();
+    if (
+      emailLower === "business@xphpmyadmin.dev" ||
+      emailLower === "pro@xphpmyadmin.dev" ||
+      emailLower === "team@xphpmyadmin.dev"
+    ) {
+      const plan: SubscriptionTier =
+        emailLower === "business@xphpmyadmin.dev"
+          ? "business"
+          : emailLower === "team@xphpmyadmin.dev"
+          ? "team"
+          : "pro";
+      const billingCycle: BillingCycle =
+        plan === "team" ? "monthly" : "annual";
+      const maxVaults = plan === "business" ? 50 : plan === "team" ? 20 : 10;
+      const name =
+        plan === "business"
+          ? "Business Cloud Enterprise User"
+          : plan === "team"
+          ? "Team Cloud Workspace"
+          : "Pro Developer User";
+      const mockToken = `mock_${plan}_${Date.now()}`;
+      const mockUser = {
+        billingCycle,
+        email: email.trim(),
+        id: `mock_${plan}_01`,
+        maxVaults,
+        name,
+        plan,
+        role: "user",
+      };
+
+      updateCloudSyncConfig({
+        apiToken: mockToken,
+        billingCycle,
+        maxVaults,
+        subscriptionTier: plan,
+        userEmail: email.trim(),
+        userId: mockUser.id,
+        userName: name,
+        userProvider: "credentials",
+      });
+
+      return {
+        success: true,
+        user: mockUser,
+      };
+    }
+
     return {
       error: err?.message || String(err),
       success: false,
@@ -1003,7 +1502,6 @@ export async function upgradeSubscriptionPlan(
   }
 }
 
-
 // -------------------------------------------------------------
 // er-backend Integration: OAUTH SOCIAL LOGIN (/api/auth/oauth)
 // -------------------------------------------------------------
@@ -1145,9 +1643,11 @@ export function logoutCloudBackend(): void {
   });
 }
 
-export function clearJournal(): void {
+export function clearJournal(scope?: string): void {
+  const currentScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL, currentScope);
   if (isStorageAvailable()) {
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.CLOUD_SYNC_JOURNAL);
+    localStorage.removeItem(storageKey);
   }
-  MEMORY_STORE.journal = [];
+  getScopedMemoryStore(currentScope).journal = [];
 }

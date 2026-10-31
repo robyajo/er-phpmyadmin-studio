@@ -1,16 +1,27 @@
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Check,
   CheckSquare,
   Columns,
+  CornerDownRight,
+  Database,
+  FileText,
   FileUp,
+  Filter,
+  HelpCircle,
+  MinusCircle,
   Play,
   Plus,
   RefreshCw,
   Search,
+  Star,
   Table as TableIcon,
   Trash2,
   X,
 } from "lucide-react";
-import type React from "react";
+import React, { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,76 +82,135 @@ export function StructureTab({
   tableSearch,
   totalDatabaseRows,
 }: StructureTabProps) {
+  // Collapsible Filters Panel (phpMyAdmin style)
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
+
+  // Sorting state for table list
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  // Favorite tables state (persisted in localStorage or component state)
+  const [favoriteTables, setFavoriteTables] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`pma_fav_${currentSelectedDatabase}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleFavorite = (tableName: string) => {
+    setFavoriteTables((prev) => {
+      const next = prev.includes(tableName)
+        ? prev.filter((t) => t !== tableName)
+        : [...prev, tableName];
+      try {
+        localStorage.setItem(
+          `pma_fav_${currentSelectedDatabase}`,
+          JSON.stringify(next)
+        );
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  // Sort tables
+  const sortedTables = useMemo(() => {
+    return [...filteredDisplayTables].sort((a, b) => {
+      const isFavA = favoriteTables.includes(a.name);
+      const isFavB = favoriteTables.includes(b.name);
+      if (isFavA && !isFavB) return -1;
+      if (!isFavA && isFavB) return 1;
+
+      const comp = a.name.localeCompare(b.name);
+      return sortDirection === "asc" ? comp : -comp;
+    });
+  }, [filteredDisplayTables, favoriteTables, sortDirection]);
+
+  // Compute total size and overhead
+  const { totalOverheadBytes, totalSizeBytes } = useMemo(() => {
+    let sizeBytes = 0;
+    let overheadBytes = 0;
+    for (const tbl of filteredDisplayTables) {
+      if (tbl.dataLength || tbl.indexLength) {
+        sizeBytes += (tbl.dataLength || 0) + (tbl.indexLength || 0);
+      }
+      if (tbl.dataFree) {
+        overheadBytes += tbl.dataFree;
+      }
+    }
+    return {
+      totalOverheadBytes: overheadBytes,
+      totalSizeBytes: sizeBytes,
+    };
+  }, [filteredDisplayTables]);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes <= 0) return "0 B";
+    if (bytes > 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MiB`;
+    return `${(bytes / 1024).toFixed(1)} KiB`;
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-      {/* Header Bar Struktur */}
-      <div className="flex shrink-0 items-center justify-between gap-2 border-border border-b bg-card px-4 py-2.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <TableIcon className="shrink-0 text-primary" size={16} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="truncate font-semibold text-foreground text-xs">
-                Struktur Basis Data:{" "}
-                <span className="font-mono text-emerald-500">
-                  {currentSelectedDatabase || "Belum dipilih"}
-                </span>
-              </h2>
-              <Badge
-                className="border-primary/30 bg-primary/10 font-mono text-[10px] text-primary"
-                variant="outline"
-              >
-                {filteredDisplayTables.length} Tabel
-              </Badge>
-              <Badge
-                className="hidden border-emerald-500/30 bg-emerald-500/10 font-mono text-[10px] text-emerald-500 sm:inline-flex"
-                variant="outline"
-              >
-                {totalDatabaseRows.toLocaleString()} Baris Total
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <div className="relative w-40 sm:w-56">
-            <Search
-              className="absolute top-2 left-2.5 text-muted-foreground/70"
-              size={12}
-            />
-            <Input
-              className="h-7 border-border bg-muted/40 pr-2 pl-8 text-foreground text-xs placeholder:text-muted-foreground/70"
-              onChange={(e) => setTableSearch(e.target.value)}
-              placeholder="Saring tabel..."
-              value={tableSearch}
-            />
-          </div>
+      {/* Filters Collapsible Bar (phpMyAdmin style) */}
+      <div className="shrink-0 border-b border-border bg-card p-3">
+        <div className="flex items-center gap-2 mb-2">
           <Button
-            className="flex h-7 items-center gap-1.5 bg-primary font-semibold text-primary-foreground text-xs shadow-sm hover:bg-primary/90"
-            onClick={() => {
-              const elem = document.getElementById("create-table-card");
-              if (elem) {
-                elem.scrollIntoView({ behavior: "smooth" });
-              }
-            }}
+            className="h-7 border-border bg-background px-2.5 text-xs text-foreground hover:bg-muted cursor-pointer"
+            onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
             size="sm"
-          >
-            <Plus size={12} />
-            <span className="hidden sm:inline">Buat Tabel Baru</span>
-          </Button>
-          <Button
-            className="h-7 border-border bg-muted/40 text-muted-foreground hover:text-foreground"
-            onClick={onRefreshTables}
-            size="sm"
-            title="Segarkan Daftar Tabel"
             variant="outline"
           >
-            <RefreshCw size={12} />
+            <Filter className="mr-1.5 size-3.5 text-primary" />
+            Filters
           </Button>
+
+          <Badge
+            className="border-primary/30 bg-primary/10 font-mono text-[10px] text-primary"
+            variant="outline"
+          >
+            {filteredDisplayTables.length} Tabel
+          </Badge>
+
+          <Badge
+            className="hidden border-emerald-500/30 bg-emerald-500/10 font-mono text-[10px] text-emerald-500 sm:inline-flex"
+            variant="outline"
+          >
+            {totalDatabaseRows.toLocaleString()} Baris Total
+          </Badge>
         </div>
+
+        {isFilterPanelOpen && (
+          <div className="flex items-center gap-3 rounded border border-border bg-muted/30 p-2.5 text-xs">
+            <span className="text-muted-foreground font-medium">
+              Containing the word:
+            </span>
+            <div className="relative w-64 sm:w-80">
+              <Input
+                autoFocus
+                className="h-7 border-border bg-background pr-2 pl-3 text-xs text-foreground placeholder:text-muted-foreground/60"
+                onChange={(e) => setTableSearch(e.target.value)}
+                placeholder="misal: users, logs, transactions..."
+                value={tableSearch}
+              />
+            </div>
+            {tableSearch && (
+              <button
+                className="cursor-pointer text-muted-foreground hover:text-foreground text-[11px]"
+                onClick={() => setTableSearch("")}
+                type="button"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Konten Utama Tabel */}
-      <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+      {/* Main Table Content */}
+      <div className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-4">
         {filteredDisplayTables.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center">
             <div className="flex size-12 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground">
@@ -155,7 +225,7 @@ export function StructureTab({
             </p>
             <div className="mt-4 flex items-center gap-2">
               <Button
-                className="h-8 bg-primary font-semibold text-primary-foreground text-xs hover:bg-primary/90"
+                className="h-8 bg-primary font-semibold text-primary-foreground text-xs hover:bg-primary/90 cursor-pointer"
                 onClick={() => {
                   const elem = document.getElementById("create-table-card");
                   if (elem) elem.scrollIntoView({ behavior: "smooth" });
@@ -166,7 +236,7 @@ export function StructureTab({
                 Buat Tabel Baru
               </Button>
               <Button
-                className="h-8 border-border text-foreground hover:bg-muted"
+                className="h-8 border-border text-foreground hover:bg-muted cursor-pointer"
                 onClick={() => onSwitchTab("import")}
                 size="sm"
                 variant="outline"
@@ -177,22 +247,22 @@ export function StructureTab({
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border bg-card">
-            <table className="w-full min-w-[760px] border-collapse text-left font-mono text-xs">
+          <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-2xs">
+            <table className="w-full min-w-[850px] border-collapse text-left font-mono text-xs">
               <thead>
-                <tr className="border-border border-b bg-muted/40 text-muted-foreground">
-                  <th className="w-8 px-3 py-2.5 text-center">
+                <tr className="border-b border-border bg-muted/60 text-muted-foreground font-sans">
+                  {/* Checkbox All */}
+                  <th className="w-8 px-3 py-2 text-center">
                     <input
                       checked={
-                        filteredDisplayTables.length > 0 &&
-                        selectedTableCheckboxes.length ===
-                          filteredDisplayTables.length
+                        sortedTables.length > 0 &&
+                        selectedTableCheckboxes.length === sortedTables.length
                       }
                       className="cursor-pointer rounded border-border bg-background text-primary"
                       onChange={(e) => {
                         if (e.target.checked) {
                           setSelectedTableCheckboxes(
-                            filteredDisplayTables.map((t) => t.name)
+                            sortedTables.map((t) => t.name)
                           );
                         } else {
                           setSelectedTableCheckboxes([]);
@@ -201,32 +271,70 @@ export function StructureTab({
                       type="checkbox"
                     />
                   </th>
-                  <th className="px-3 py-2.5 font-semibold">Nama Tabel</th>
-                  <th className="px-3 py-2.5 text-center font-semibold">
-                    Aksi
+
+                  {/* Table Name (Sortable) */}
+                  <th
+                    className="cursor-pointer select-none px-3 py-2 font-semibold hover:text-foreground"
+                    onClick={() =>
+                      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+                    }
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Table</span>
+                      {sortDirection === "asc" ? (
+                        <ArrowUp className="text-primary size-3" />
+                      ) : (
+                        <ArrowDown className="text-primary size-3" />
+                      )}
+                    </div>
                   </th>
-                  <th className="px-3 py-2.5 text-right font-semibold">
-                    Jumlah Baris
+
+                  {/* Action */}
+                  <th className="px-3 py-2 text-center font-semibold">Action</th>
+
+                  {/* Rows */}
+                  <th className="px-3 py-2 text-right font-semibold">
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Rows</span>
+                      <span title="May be approximate for InnoDB">
+                        <HelpCircle size={11} className="opacity-60" />
+                      </span>
+                    </div>
                   </th>
-                  <th className="px-3 py-2.5 font-semibold">Mesin</th>
-                  <th className="px-3 py-2.5 font-semibold">Collation</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">
-                    Ukuran
-                  </th>
+
+                  {/* Type (Engine) */}
+                  <th className="px-3 py-2 font-semibold">Type</th>
+
+                  {/* Collation */}
+                  <th className="px-3 py-2 font-semibold">Collation</th>
+
+                  {/* Size */}
+                  <th className="px-3 py-2 text-right font-semibold">Size</th>
+
+                  {/* Overhead */}
+                  <th className="px-3 py-2 text-right font-semibold">Overhead</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50 text-foreground">
-                {filteredDisplayTables.map((tbl) => {
+
+              <tbody className="divide-y divide-border/50 text-foreground font-mono text-[11px]">
+                {sortedTables.map((tbl) => {
                   const isChecked = selectedTableCheckboxes.includes(tbl.name);
+                  const isFav = favoriteTables.includes(tbl.name);
+                  const overheadFormatted =
+                    tbl.dataFree && tbl.dataFree > 0
+                      ? formatBytes(tbl.dataFree)
+                      : "-";
+
                   return (
                     <tr
                       className={cn(
-                        "transition-colors hover:bg-muted",
-                        isChecked && "bg-primary text-primary-foreground/5"
+                        "transition-colors hover:bg-muted/50",
+                        isChecked && "bg-primary/5"
                       )}
                       key={tbl.name}
                     >
-                      <td className="px-3 py-2 text-center">
+                      {/* Checkbox */}
+                      <td className="px-3 py-1.5 text-center">
                         <input
                           checked={isChecked}
                           className="cursor-pointer rounded border-border bg-background text-primary"
@@ -245,152 +353,221 @@ export function StructureTab({
                           type="checkbox"
                         />
                       </td>
-                      <td className="px-3 py-2 font-medium text-foreground">
+
+                      {/* Table Name */}
+                      <td className="px-3 py-1.5 font-medium text-foreground">
                         <button
-                          className="flex cursor-pointer items-center gap-1.5 text-left font-semibold text-foreground hover:text-primary hover:underline"
+                          className="flex cursor-pointer items-center gap-1.5 text-left font-semibold text-primary hover:underline"
                           onClick={() => onBrowseTable(tbl.name)}
-                          title="Klik untuk menjelajahi data tabel"
+                          title="Klik untuk membuka Browse tab"
                           type="button"
                         >
-                          <TableIcon
-                            className="shrink-0 text-primary"
-                            size={13}
-                          />
+                          <TableIcon className="shrink-0 text-primary" size={13} />
                           <span>{tbl.name}</span>
                         </button>
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center justify-center gap-1">
+
+                      {/* Action icons & buttons matching phpMyAdmin */}
+                      <td className="px-3 py-1.5 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1 text-[11px] font-sans">
+                          {/* Favorite Star */}
+                          <button
+                            className="cursor-pointer p-0.5 text-muted-foreground hover:text-amber-400 transition-colors"
+                            onClick={() => toggleFavorite(tbl.name)}
+                            title={isFav ? "Hapus dari favorit" : "Jadikan favorit"}
+                            type="button"
+                          >
+                            <Star
+                              className={cn(
+                                "size-3.5",
+                                isFav
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "text-muted-foreground/60"
+                              )}
+                            />
+                          </button>
+
+                          {/* Browse */}
                           <Button
-                            className="h-6 px-1.5 text-[10px] text-emerald-500 hover:bg-emerald-500/10"
+                            className="h-6 px-1.5 text-[11px] text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400 cursor-pointer"
                             onClick={() => onBrowseTable(tbl.name)}
                             size="sm"
-                            title="Jelajahi Data (SELECT * FROM)"
+                            title="Browse (Jelajahi data tabel)"
                             variant="ghost"
                           >
                             <Play className="mr-1 fill-current" size={10} />
-                            Jelajahi
+                            Browse
                           </Button>
+
+                          {/* Structure */}
                           <Button
-                            className="h-6 px-1.5 text-[10px] text-primary hover:bg-primary/10"
+                            className="h-6 px-1.5 text-[11px] text-primary hover:bg-primary/10 cursor-pointer"
                             onClick={() => onViewTableStructure(tbl.name)}
                             size="sm"
-                            title="Struktur Kolom & Indeks (DESCRIBE)"
+                            title="Structure (Kolom & Indeks)"
                             variant="ghost"
                           >
-                            <Columns className="mr-1" size={10} />
-                            Struktur
+                            <Columns className="mr-1" size={11} />
+                            Structure
                           </Button>
+
+                          {/* Search */}
                           <Button
-                            className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                            className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
                             onClick={() => onSearchTable?.(tbl.name)}
                             size="sm"
-                            title="Cari di Tabel Ini"
+                            title="Search (Cari data di tabel ini)"
                             variant="ghost"
                           >
-                            <Search className="mr-1" size={10} />
-                            Cari
+                            <Search className="mr-1" size={11} />
+                            Search
                           </Button>
+
+                          {/* Insert */}
                           <Button
-                            className="h-6 px-1.5 text-[10px] text-amber-500 hover:bg-amber-500/10"
+                            className="h-6 px-1.5 text-[11px] text-amber-500 hover:bg-amber-500/10 cursor-pointer"
                             onClick={() => onOpenInsertModal(tbl.name)}
                             size="sm"
-                            title="Sisipkan Baris Baru (INSERT INTO)"
+                            title="Insert (Sisipkan baris baru)"
                             variant="ghost"
                           >
-                            <Plus className="mr-1" size={10} />
-                            Sisipkan
+                            <Plus className="mr-1" size={11} />
+                            Insert
                           </Button>
+
+                          {/* Empty */}
                           <Button
-                            className="h-6 px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
+                            className="h-6 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 cursor-pointer"
                             onClick={() => onEmptyTable(tbl.name)}
                             size="sm"
-                            title="Kosongkan Tabel (TRUNCATE)"
+                            title="Empty (TRUNCATE tabel)"
                             variant="ghost"
                           >
-                            <Trash2 className="mr-1" size={10} />
-                            Kosongkan
+                            <Trash2 className="mr-1" size={11} />
+                            Empty
                           </Button>
+
+                          {/* Drop */}
                           <Button
-                            className="h-6 px-1 text-[10px] text-destructive hover:bg-destructive/10"
+                            className="h-6 px-1 text-[11px] text-destructive hover:bg-destructive/10 cursor-pointer"
                             onClick={() => onDropTable(tbl.name)}
                             size="sm"
-                            title="Hapus Tabel (DROP TABLE)"
+                            title="Drop (Hapus tabel permanen)"
                             variant="ghost"
                           >
-                            <X size={10} />
+                            <MinusCircle className="mr-1" size={11} />
+                            Drop
                           </Button>
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-right font-medium">
+
+                      {/* Rows */}
+                      <td className="px-3 py-1.5 text-right font-medium">
                         {tbl.rows.toLocaleString()}
                       </td>
-                      <td className="px-3 py-2">
-                        <Badge
-                          className="border-border px-1.5 py-0 font-mono text-[9px] text-muted-foreground"
-                          variant="outline"
-                        >
+
+                      {/* Type (Engine) */}
+                      <td className="px-3 py-1.5">
+                        <span className="text-muted-foreground font-mono text-[11px]">
                           {tbl.engine || "InnoDB"}
-                        </Badge>
+                        </span>
                       </td>
-                      <td className="px-3 py-2 text-[11px] text-muted-foreground">
-                        {tbl.collation || "utf8mb4_general_ci"}
+
+                      {/* Collation */}
+                      <td className="px-3 py-1.5 text-[11px] text-muted-foreground">
+                        {tbl.collation || "utf8mb4_unicode_ci"}
                       </td>
-                      <td className="px-3 py-2 text-right font-medium text-foreground">
+
+                      {/* Size */}
+                      <td className="px-3 py-1.5 text-right font-medium text-foreground">
                         {tbl.size}
+                      </td>
+
+                      {/* Overhead */}
+                      <td className="px-3 py-1.5 text-right font-medium text-muted-foreground">
+                        {overheadFormatted}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
-              {/* Summary Footer */}
+
+              {/* Summary Footer Row (phpMyAdmin style) */}
               <tfoot>
-                <tr className="border-border border-t-2 bg-muted/40 font-semibold text-[11px] text-foreground">
-                  <td className="px-3 py-2.5 text-center">
-                    <CheckSquare className="mx-auto text-primary" size={12} />
+                <tr className="border-t-2 border-border bg-muted/60 font-semibold text-[11px] text-foreground font-sans">
+                  <td className="px-3 py-2 text-center">
+                    <CheckSquare className="mx-auto text-primary size-3.5" />
                   </td>
-                  <td className="px-3 py-2.5">
-                    {filteredDisplayTables.length} Tabel Total
+                  <td className="px-3 py-2 font-mono">
+                    {sortedTables.length} tables
                   </td>
-                  <td className="px-3 py-2.5 text-center text-muted-foreground">
-                    —
+                  <td className="px-3 py-2 text-center text-muted-foreground">
+                    Sum
                   </td>
-                  <td className="px-3 py-2.5 text-right text-emerald-500">
+                  <td className="px-3 py-2 text-right text-emerald-600 dark:text-emerald-400 font-mono">
                     {totalDatabaseRows.toLocaleString()}
                   </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">
-                    InnoDB / MariaDB
+                  <td className="px-3 py-2 text-muted-foreground font-mono">
+                    InnoDB
                   </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">utf8mb4</td>
-                  <td className="px-3 py-2.5 text-right text-primary">
-                    {filteredDisplayTables.length > 0 ? "Tersedia" : "-"}
+                  <td className="px-3 py-2 text-muted-foreground font-mono">
+                    utf8mb4_general_ci
+                  </td>
+                  <td className="px-3 py-2 text-right text-primary font-mono">
+                    {formatBytes(totalSizeBytes)}
+                  </td>
+                  <td className="px-3 py-2 text-right text-muted-foreground font-mono">
+                    {formatBytes(totalOverheadBytes)}
                   </td>
                 </tr>
               </tfoot>
             </table>
 
-            {/* With Selected Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-border border-t bg-muted p-2.5 text-xs">
+            {/* With Selected Action Bar (phpMyAdmin style) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/30 p-2.5 text-xs font-sans">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">
-                  Dengan yang terpilih ({selectedTableCheckboxes.length}):
+                <CornerDownRight className="text-muted-foreground size-3.5" />
+                <label className="flex cursor-pointer items-center gap-1 text-muted-foreground hover:text-foreground">
+                  <input
+                    checked={
+                      sortedTables.length > 0 &&
+                      selectedTableCheckboxes.length === sortedTables.length
+                    }
+                    className="cursor-pointer rounded border-border bg-background text-primary"
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedTableCheckboxes(
+                          sortedTables.map((t) => t.name)
+                        );
+                      } else {
+                        setSelectedTableCheckboxes([]);
+                      }
+                    }}
+                    type="checkbox"
+                  />
+                  <span>Check all</span>
+                </label>
+
+                <span className="text-[11px] text-muted-foreground ml-3">
+                  With selected:
                 </span>
                 <select
                   className="h-7 rounded border border-border bg-card px-2 font-mono text-foreground text-xs focus:border-primary focus:outline-none"
                   onChange={(e) => setBulkAction(e.target.value)}
                   value={bulkAction}
                 >
-                  <option value="empty">Kosongkan (TRUNCATE)</option>
-                  <option value="drop">Hapus Tabel (DROP)</option>
-                  <option value="optimize">Optimalkan (OPTIMIZE)</option>
-                  <option value="check">Periksa (CHECK)</option>
-                  <option value="analyze">Analisis (ANALYZE)</option>
-                  <option value="repair">Perbaiki (REPAIR)</option>
-                  <option value="checksum">Checksum (CHECKSUM)</option>
-                  <option value="export">Ekspor Terpilih (EXPORT)</option>
+                  <option value="empty">Empty (TRUNCATE)</option>
+                  <option value="drop">Drop (DROP)</option>
+                  <option value="print">Print</option>
+                  <option value="check">Check table (CHECK)</option>
+                  <option value="optimize">Optimize table (OPTIMIZE)</option>
+                  <option value="repair">Repair table (REPAIR)</option>
+                  <option value="analyze">Analyze table (ANALYZE)</option>
+                  <option value="checksum">Checksum table (CHECKSUM)</option>
+                  <option value="export">Export (EXPORT)</option>
                 </select>
                 <Button
-                  className="h-7 bg-primary font-semibold text-primary-foreground text-xs hover:bg-primary/90"
+                  className="h-7 bg-primary font-semibold text-primary-foreground text-xs hover:bg-primary/90 cursor-pointer"
                   disabled={selectedTableCheckboxes.length === 0}
                   onClick={onExecuteBulkAction}
                   size="sm"
@@ -398,13 +575,12 @@ export function StructureTab({
                   Jalankan
                 </Button>
               </div>
+
               <div className="flex items-center gap-2">
                 <button
-                  className="text-[11px] text-primary hover:underline"
+                  className="text-[11px] text-primary hover:underline cursor-pointer"
                   onClick={() =>
-                    setSelectedTableCheckboxes(
-                      filteredDisplayTables.map((t) => t.name)
-                    )
+                    setSelectedTableCheckboxes(sortedTables.map((t) => t.name))
                   }
                   type="button"
                 >
@@ -412,7 +588,7 @@ export function StructureTab({
                 </button>
                 <span className="text-muted-foreground/70">•</span>
                 <button
-                  className="text-[11px] text-muted-foreground hover:underline"
+                  className="text-[11px] text-muted-foreground hover:underline cursor-pointer"
                   onClick={() => setSelectedTableCheckboxes([])}
                   type="button"
                 >
@@ -464,7 +640,7 @@ export function StructureTab({
             </div>
             <div>
               <Button
-                className="h-8 w-full bg-primary font-semibold text-primary-foreground text-xs hover:bg-primary/90"
+                className="h-8 w-full bg-primary font-semibold text-primary-foreground text-xs hover:bg-primary/90 cursor-pointer"
                 disabled={!newTableNameInput.trim() || isCreatingTable}
                 onClick={onCreateTable}
                 size="sm"

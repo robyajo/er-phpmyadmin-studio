@@ -1,9 +1,12 @@
 import type React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
-import { INITIAL_PROFILES } from "@/components/workspace/constants";
 import type { ActiveTabItem } from "@/components/workspace/types";
-import { LOCAL_STORAGE_KEYS } from "@/constants";
-import { mergeProfilesLists, setCachedProfiles } from "@/services/cloud-sync";
+import {
+  getStoredProfiles,
+  mergeProfilesLists,
+  setCachedProfiles,
+  setStoredProfiles,
+} from "@/services/cloud-sync";
 import type { Profile } from "@/types/connection";
 
 interface ConnectionContextValue {
@@ -20,7 +23,7 @@ interface ConnectionContextValue {
   setIsSidebarCollapsed: (
     collapsed: boolean | ((prev: boolean) => boolean)
   ) => void;
-  setProfiles: React.Dispatch<React.SetStateAction<Profile[]>>;
+  setProfiles: React.Dispatch<React.SetStateAction<Profile[]>> | ((profs: Profile[] | ((prev: Profile[]) => Profile[])) => void);
   setSavedPasswords: React.Dispatch<
     React.SetStateAction<Record<string, string>>
   >;
@@ -35,20 +38,7 @@ export function ConnectionProvider({
   children: React.ReactNode;
 }) {
   const [profiles, setProfiles] = useState<Profile[]>(() => {
-    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-      try {
-        const stored = localStorage.getItem(LOCAL_STORAGE_KEYS.PROFILES);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch {
-        // fallback
-      }
-    }
-    return INITIAL_PROFILES;
+    return getStoredProfiles();
   });
 
   const [savedPasswords, setSavedPasswords] = useState<Record<string, string>>({
@@ -62,20 +52,24 @@ export function ConnectionProvider({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Sync to localStorage and global cached profiles whenever profiles change
+  // Sync to user-scoped storage whenever profiles change
   useEffect(() => {
-    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
-      try {
-        localStorage.setItem(
-          LOCAL_STORAGE_KEYS.PROFILES,
-          JSON.stringify(profiles)
-        );
-      } catch {
-        // ignore storage errors
-      }
-    }
+    setStoredProfiles(profiles);
     setCachedProfiles(profiles);
   }, [profiles]);
+
+  // Listen for account switch events (e.g. login/logout) and switch active profiles state
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleAccountSwitch = (e: any) => {
+      const nextProfiles = e.detail?.profiles || getStoredProfiles();
+      setProfiles(nextProfiles);
+    };
+    window.addEventListener("xphpmyadmin:account_switched", handleAccountSwitch);
+    return () => {
+      window.removeEventListener("xphpmyadmin:account_switched", handleAccountSwitch);
+    };
+  }, []);
 
   const mergeProfiles = (incoming: Profile[]) => {
     if (!incoming || incoming.length === 0) return;

@@ -32,6 +32,7 @@ import { cn } from "@/utils/tailwind";
 interface ConnectionInspectorProps {
   diagnostics: DiagnosticStage[] | null;
   editForm: Profile;
+  isCreatingNew?: boolean;
   isOpen: boolean;
   isTesting: boolean;
   onClose: () => void;
@@ -53,6 +54,7 @@ interface ConnectionInspectorProps {
 export function ConnectionInspector({
   diagnostics,
   editForm,
+  isCreatingNew = false,
   isOpen,
   isTesting,
   onClose,
@@ -113,19 +115,31 @@ export function ConnectionInspector({
             )}
           </div>
           <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider truncate">
-            {editForm.method === "ssh" ? "SSH Tunnel Details" : "Host Details"}
+            {isCreatingNew
+              ? editForm.method === "ssh"
+                ? "Buat SSH Tunnel Baru"
+                : "Buat Koneksi Baru"
+              : editForm.method === "ssh"
+                ? "SSH Tunnel Details"
+                : "Host Details"}
           </h3>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <Badge
-            className={cn(
-              "text-[9px] uppercase tracking-wider px-1.5 py-0",
-              editForm.environment === "Production" &&
-                "border-destructive/30 bg-destructive/10 text-destructive font-medium"
-            )}
-          >
-            {editForm.environment}
-          </Badge>
+          {isCreatingNew ? (
+            <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-500 text-[9px] uppercase tracking-wider px-1.5 py-0 font-medium">
+              Draft Baru
+            </Badge>
+          ) : (
+            <Badge
+              className={cn(
+                "text-[9px] uppercase tracking-wider px-1.5 py-0",
+                editForm.environment === "Production" &&
+                  "border-destructive/30 bg-destructive/10 text-destructive font-medium"
+              )}
+            >
+              {editForm.environment}
+            </Badge>
+          )}
           <button
             className="cursor-pointer rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
             onClick={onClose}
@@ -284,91 +298,90 @@ export function ConnectionInspector({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="col-span-2">
-              <Label className="text-[10px] text-muted-foreground">
-                Hostname / IP Database
-              </Label>
-              <Input
-                className="mt-1 h-8 border-border bg-background py-0.5 font-mono text-xs leading-normal"
-                onChange={(e) =>
-                  setEditForm({ ...editForm, host: e.target.value })
-                }
-                placeholder={editForm.method === "ssh" ? "127.0.0.1" : "localhost"}
-                value={editForm.host}
-              />
-            </div>
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Port</Label>
-              <Input
-                className="mt-1 h-8 border-border bg-background py-0.5 font-mono text-xs leading-normal"
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    port: Number.parseInt(e.target.value, 10) || 3306,
-                  })
-                }
-                type="number"
-                value={editForm.port}
-              />
-            </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground">
+              Hostname / IP Database
+            </Label>
+            <Input
+              className="mt-1 h-8 border-border bg-background px-2.5 font-mono text-xs leading-normal"
+              onChange={(e) =>
+                setEditForm({ ...editForm, host: e.target.value })
+              }
+              placeholder={editForm.method === "ssh" ? "127.0.0.1" : "localhost"}
+              value={editForm.host}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-[10px] text-muted-foreground">
-                Username MySQL
-              </Label>
+
+          <div>
+            <Label className="text-[10px] text-muted-foreground">Port Database</Label>
+            <Input
+              className="mt-1 h-8 border-border bg-background px-2.5 font-mono text-xs leading-normal"
+              onChange={(e) =>
+                setEditForm({
+                  ...editForm,
+                  port: Number.parseInt(e.target.value, 10) || 3306,
+                })
+              }
+              type="number"
+              value={editForm.port}
+            />
+          </div>
+
+          <div>
+            <Label className="text-[10px] text-muted-foreground">
+              Username MySQL
+            </Label>
+            <Input
+              className="mt-1 h-8 border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50"
+              onChange={(e) =>
+                setEditForm({ ...editForm, username: e.target.value })
+              }
+              placeholder="root"
+              value={editForm.username}
+            />
+          </div>
+
+          <div>
+            <Label className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>Password MySQL</span>
+              {editForm.has_saved_password && passwordAction === "keep" && (
+                <span className="font-medium text-[9px] text-emerald-500">
+                  Tersimpan di Vault
+                </span>
+              )}
+              {passwordAction === "replace" && (
+                <span className="font-medium text-[9px] text-amber-500">
+                  Password Baru
+                </span>
+              )}
+              {passwordAction === "remove" && (
+                <span className="font-medium text-[9px] text-destructive">
+                  Akan Dihapus
+                </span>
+              )}
+            </Label>
+            <div className="relative mt-1">
               <Input
-                className="mt-1 h-8 border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50"
-                onChange={(e) =>
-                  setEditForm({ ...editForm, username: e.target.value })
+                className="h-8 border-border bg-background pl-2.5 pr-7 font-mono text-xs text-foreground leading-normal"
+                onChange={(e) => {
+                  setPasswordInput(e.target.value);
+                  setPasswordAction("replace");
+                }}
+                placeholder={
+                  editForm.has_saved_password && passwordAction === "keep"
+                    ? "•••••••• (Tersimpan - ketik untuk ganti)"
+                    : "Ketik password database..."
                 }
-                placeholder="root"
-                value={editForm.username}
+                type={showPassword ? "text" : "password"}
+                value={passwordInput}
               />
-            </div>
-            <div>
-              <Label className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>Password MySQL</span>
-                {editForm.has_saved_password && passwordAction === "keep" && (
-                  <span className="font-medium text-[9px] text-emerald-500">
-                    Tersimpan di Vault
-                  </span>
-                )}
-                {passwordAction === "replace" && (
-                  <span className="font-medium text-[9px] text-amber-500">
-                    Password Baru
-                  </span>
-                )}
-                {passwordAction === "remove" && (
-                  <span className="font-medium text-[9px] text-destructive">
-                    Akan Dihapus
-                  </span>
-                )}
-              </Label>
-              <div className="relative mt-1">
-                <Input
-                  className="h-8 border-border bg-background pl-2.5 pr-7 font-mono text-xs text-foreground leading-normal"
-                  onChange={(e) => {
-                    setPasswordInput(e.target.value);
-                    setPasswordAction("replace");
-                  }}
-                  placeholder={
-                    editForm.has_saved_password && passwordAction === "keep"
-                      ? "•••••••• (Tersimpan - ketik untuk ganti)"
-                      : "Ketik password database..."
-                  }
-                  type={showPassword ? "text" : "password"}
-                  value={passwordInput}
-                />
-                <button
-                  className="absolute top-2 right-2 cursor-pointer text-muted-foreground/70 hover:text-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                  type="button"
-                >
-                  {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
-                </button>
-              </div>
+              <button
+                className="absolute top-2 right-2 cursor-pointer text-muted-foreground/70 hover:text-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+                type="button"
+              >
+                {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
+              </button>
             </div>
           </div>
         </div>
@@ -403,126 +416,124 @@ export function ConnectionInspector({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2">
-                <Label className="text-[10px] text-muted-foreground">
-                  IP Publik / Domain VPS
-                </Label>
-                <Input
-                  className="mt-1 h-8 border-border bg-background py-0.5 font-mono text-xs leading-normal"
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      ssh: { ...editForm.ssh!, host: e.target.value },
-                    })
-                  }
-                  placeholder="103.xxx.xxx.xxx atau vps.domain.com"
-                  value={editForm.ssh?.host || ""}
-                />
-              </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground">
-                  SSH Port
-                </Label>
-                <Input
-                  className="mt-1 h-8 border-border bg-background py-0.5 font-mono text-xs leading-normal"
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      ssh: {
-                        ...editForm.ssh!,
-                        port: Number.parseInt(e.target.value, 10) || 22,
-                      },
-                    })
-                  }
-                  type="number"
-                  value={editForm.ssh?.port || 22}
-                />
+            <div>
+              <Label className="text-[10px] text-muted-foreground">
+                IP Publik / Domain VPS
+              </Label>
+              <Input
+                className="mt-1 h-8 border-border bg-background px-2.5 font-mono text-xs leading-normal"
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    ssh: { ...editForm.ssh!, host: e.target.value },
+                  })
+                }
+                placeholder="103.xxx.xxx.xxx atau vps.domain.com"
+                value={editForm.ssh?.host || ""}
+              />
+            </div>
+
+            <div>
+              <Label className="text-[10px] text-muted-foreground">
+                SSH Port
+              </Label>
+              <Input
+                className="mt-1 h-8 border-border bg-background px-2.5 font-mono text-xs leading-normal"
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    ssh: {
+                      ...editForm.ssh!,
+                      port: Number.parseInt(e.target.value, 10) || 22,
+                    },
+                  })
+                }
+                type="number"
+                value={editForm.ssh?.port || 22}
+              />
+            </div>
+
+            <div>
+              <Label className="text-[10px] text-muted-foreground">
+                User SSH (VPS)
+              </Label>
+              <Input
+                className="mt-1 h-8 border-border bg-background px-2.5 font-mono text-xs leading-normal"
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    ssh: { ...editForm.ssh!, username: e.target.value },
+                  })
+                }
+                placeholder="root / ubuntu"
+                value={editForm.ssh?.username ?? ""}
+              />
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                <span className="text-[9px] text-muted-foreground/80">
+                  Preset:
+                </span>
+                {["root", "ubuntu", "debian", "ec2-user"].map((userPreset) => (
+                  <button
+                    className={cn(
+                      "cursor-pointer rounded border px-1.5 py-0.5 font-mono text-[9px] transition-all",
+                      editForm.ssh?.username === userPreset
+                        ? "border-purple-300 bg-purple-100 font-semibold text-purple-800 dark:border-purple-400 dark:bg-purple-500/25 dark:text-purple-200"
+                        : "border-border/60 bg-background/60 text-muted-foreground hover:border-purple-300 hover:text-purple-700 dark:hover:border-purple-400/40 dark:hover:text-foreground"
+                    )}
+                    key={userPreset}
+                    onClick={() =>
+                      setEditForm({
+                        ...editForm,
+                        ssh: { ...editForm.ssh!, username: userPreset },
+                      })
+                    }
+                    type="button"
+                  >
+                    {userPreset}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-[10px] text-muted-foreground">
-                  User SSH (VPS)
-                </Label>
-                <Input
-                  className="mt-1 h-8 border-border bg-background py-0.5 font-mono text-xs leading-normal"
-                  onChange={(e) =>
+            <div>
+              <Label className="text-[10px] text-muted-foreground">
+                Metode Auth SSH
+              </Label>
+              <div className="mt-1 grid grid-cols-2 gap-1 rounded border border-border bg-background p-0.5">
+                <button
+                  className={cn(
+                    "cursor-pointer rounded py-1 text-center text-xs font-medium transition-all",
+                    (editForm.ssh?.auth_type ?? "password") === "password"
+                      ? "bg-purple-600 font-semibold text-white shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() =>
                     setEditForm({
                       ...editForm,
-                      ssh: { ...editForm.ssh!, username: e.target.value },
+                      ssh: { ...editForm.ssh!, auth_type: "password" },
                     })
                   }
-                  placeholder="root / ubuntu"
-                  value={editForm.ssh?.username ?? ""}
-                />
-                <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                  <span className="text-[9px] text-muted-foreground/80">
-                    Preset:
-                  </span>
-                  {["root", "ubuntu", "debian", "ec2-user"].map((userPreset) => (
-                    <button
-                      className={cn(
-                        "cursor-pointer rounded border px-1.5 py-0.5 font-mono text-[9px] transition-all",
-                        editForm.ssh?.username === userPreset
-                          ? "border-purple-300 bg-purple-100 font-semibold text-purple-800 dark:border-purple-400 dark:bg-purple-500/25 dark:text-purple-200"
-                          : "border-border/60 bg-background/60 text-muted-foreground hover:border-purple-300 hover:text-purple-700 dark:hover:border-purple-400/40 dark:hover:text-foreground"
-                      )}
-                      key={userPreset}
-                      onClick={() =>
-                        setEditForm({
-                          ...editForm,
-                          ssh: { ...editForm.ssh!, username: userPreset },
-                        })
-                      }
-                      type="button"
-                    >
-                      {userPreset}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground">
-                  Metode Auth SSH
-                </Label>
-                <div className="mt-1 grid grid-cols-2 gap-1 rounded border border-border bg-background p-0.5">
-                  <button
-                    className={cn(
-                      "cursor-pointer rounded py-0.5 text-center text-[10px] font-medium transition-all",
-                      (editForm.ssh?.auth_type ?? "password") === "password"
-                        ? "bg-purple-600 font-semibold text-white"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    onClick={() =>
-                      setEditForm({
-                        ...editForm,
-                        ssh: { ...editForm.ssh!, auth_type: "password" },
-                      })
-                    }
-                    type="button"
-                  >
-                    Password
-                  </button>
-                  <button
-                    className={cn(
-                      "cursor-pointer rounded py-0.5 text-center text-[10px] font-medium transition-all",
-                      editForm.ssh?.auth_type === "key"
-                        ? "bg-purple-600 font-semibold text-white"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    onClick={() =>
-                      setEditForm({
-                        ...editForm,
-                        ssh: { ...editForm.ssh!, auth_type: "key" },
-                      })
-                    }
-                    type="button"
-                  >
-                    Private Key
-                  </button>
-                </div>
+                  type="button"
+                >
+                  Password
+                </button>
+                <button
+                  className={cn(
+                    "cursor-pointer rounded py-1 text-center text-xs font-medium transition-all",
+                    editForm.ssh?.auth_type === "key"
+                      ? "bg-purple-600 font-semibold text-white shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() =>
+                    setEditForm({
+                      ...editForm,
+                      ssh: { ...editForm.ssh!, auth_type: "key" },
+                    })
+                  }
+                  type="button"
+                >
+                  Private Key
+                </button>
               </div>
             </div>
 
@@ -847,7 +858,7 @@ export function ConnectionInspector({
             size="sm"
           >
             <Check className="mr-1" size={12} />
-            <span className="truncate">Simpan</span>
+            <span className="truncate">{isCreatingNew ? "Simpan ke Daftar" : "Simpan"}</span>
           </Button>
         </div>
         <Button

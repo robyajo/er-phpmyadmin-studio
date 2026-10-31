@@ -43,6 +43,7 @@ export function HomePage() {
 
   // State profil & daftar server
   const [selectedId, setSelectedId] = useState<string>(profiles[0]?.id || "");
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"recent" | "name">("recent");
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
@@ -71,15 +72,18 @@ export function HomePage() {
   // Otomatis sesuaikan selectedId dan form saat profiles disinkronkan dari cloud
   useEffect(() => {
     if (profiles.length > 0) {
-      if (!selectedId || !profiles.some((p) => p.id === selectedId)) {
+      if (!isCreatingNew && (!selectedId || !profiles.some((p) => p.id === selectedId))) {
         setSelectedId(profiles[0].id);
         setEditForm({ ...profiles[0] });
       }
     }
-  }, [profiles, selectedId]);
+  }, [profiles, selectedId, isCreatingNew]);
 
   // Handlers
   const handleSelectHost = (profile: Profile) => {
+    if (isCreatingNew) {
+      setIsCreatingNew(false);
+    }
     setSelectedId(profile.id);
     setEditForm({ ...profile });
     setPasswordAction(profile.has_saved_password ? "keep" : "replace");
@@ -91,6 +95,20 @@ export function HomePage() {
     }
   };
 
+  const handleCloseInspector = () => {
+    if (isCreatingNew) {
+      setIsCreatingNew(false);
+      if (profiles.length > 0) {
+        setSelectedId(profiles[0].id);
+        setEditForm({ ...profiles[0] });
+        setPasswordAction(profiles[0].has_saved_password ? "keep" : "replace");
+        setPasswordInput(savedPasswords[profiles[0].id] || "");
+      }
+      toast.info("Penambahan koneksi baru dibatalkan.");
+    }
+    setIsInspectorOpen(false);
+  };
+
   const handleSelectNav = (sectionId: string) => {
     setActiveNav(sectionId);
     if (sectionId === "tunnels") {
@@ -99,20 +117,12 @@ export function HomePage() {
       if (sshProfile) {
         handleSelectHost(sshProfile);
       }
-      toast.info("Menu SSH Tunnels Aktif", {
-        description: "Menampilkan koneksi database via terowongan SSH VPS.",
-      });
     } else if (sectionId === "hosts") {
       setMethodFilter("all");
     } else if (sectionId === "keychain") {
-      toast.info("Keychain Password Vault", {
-        description: "Password disimpan aman menggunakan enkripsi AES-256.",
-      });
+      // Pilihan keychain
     } else if (sectionId === "settings") {
-      // Switch active view directly to Settings View
       setActiveNav("settings");
-    } else {
-      toast.info(`Bagian ${sectionId} dipilih`);
     }
   };
 
@@ -214,17 +224,16 @@ export function HomePage() {
       updated_at: new Date().toISOString(),
       username: "root",
     };
-    setProfiles([newHost, ...profiles]);
-    recordAction({
-      action: "profile_create",
-      category: "connection",
-      details: { host: newHost.host, port: newHost.port, method: "direct" },
-      profileId: newHost.id,
-      profileName: newHost.name,
-    });
-    handleSelectHost(newHost);
-    toast.info("Draft koneksi baru dibuat", {
-      description: "Lengkapi parameter lalu simpan.",
+    setIsCreatingNew(true);
+    setSelectedId(newHost.id);
+    setEditForm({ ...newHost });
+    setPasswordAction("replace");
+    setPasswordInput("");
+    setShowSshPassword(false);
+    setDiagnostics(null);
+    setIsInspectorOpen(true);
+    toast.info("Formulir Koneksi Baru Dibuka", {
+      description: "Lengkapi parameter pada panel kanan lalu klik Simpan agar ditampilkan di daftar.",
     });
   };
 
@@ -256,18 +265,16 @@ export function HomePage() {
       updated_at: new Date().toISOString(),
       username: "root",
     };
-    setProfiles([newSshHost, ...profiles]);
-    recordAction({
-      action: "profile_create",
-      category: "connection",
-      details: { host: newSshHost.host, port: newSshHost.port, method: "ssh" },
-      profileId: newSshHost.id,
-      profileName: newSshHost.name,
-    });
-    handleSelectHost(newSshHost);
+    setIsCreatingNew(true);
+    setSelectedId(newSshHost.id);
+    setEditForm({ ...newSshHost });
+    setPasswordAction("replace");
+    setPasswordInput("");
+    setShowSshPassword(false);
+    setDiagnostics(null);
     setIsInspectorOpen(true);
-    toast.info("Draft SSH Tunnel Baru Dibuat", {
-      description: "Masukkan IP publik VPS dan kredensial SSH pada panel sebelah kanan.",
+    toast.info("Formulir SSH Tunnel Baru Dibuka", {
+      description: "Masukkan IP publik VPS & kredensial SSH pada panel kanan, lalu klik Simpan.",
     });
   };
 
@@ -342,35 +349,61 @@ export function HomePage() {
       });
     }
     const validatedData = profileValidation.data;
-    setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === validatedData.id
-          ? {
-              ...validatedData,
-              has_saved_password:
-                passwordAction === "replace"
-                  ? true
-                  : passwordAction === "remove"
-                    ? false
-                    : p.has_saved_password,
-            }
-          : p
-      )
-    );
-    recordAction({
-      action: "profile_update",
-      category: "connection",
-      details: {
-        host: validatedData.host,
-        method: validatedData.method,
-        port: validatedData.port,
-      },
-      profileId: validatedData.id,
-      profileName: validatedData.name,
-    });
-    toast.success("Profil Berhasil Disimpan", {
-      description: `${validatedData.name} (${validatedData.host}:${validatedData.port}) tersimpan di SQLite`,
-    });
+
+    if (isCreatingNew) {
+      const newProfile: Profile = {
+        ...validatedData,
+        has_saved_password: passwordAction === "replace" && !!passwordInput,
+      };
+      setProfiles((prev) => [newProfile, ...prev]);
+      setIsCreatingNew(false);
+      setSelectedId(validatedData.id);
+      setEditForm(newProfile);
+      recordAction({
+        action: "profile_create",
+        category: "connection",
+        details: {
+          host: validatedData.host,
+          method: validatedData.method,
+          port: validatedData.port,
+        },
+        profileId: validatedData.id,
+        profileName: validatedData.name,
+      });
+      toast.success("Koneksi Baru Berhasil Disimpan!", {
+        description: `${validatedData.name} (${validatedData.host}:${validatedData.port}) telah ditambahkan ke daftar koneksi.`,
+      });
+    } else {
+      setProfiles((prev) =>
+        prev.map((p) =>
+          p.id === validatedData.id
+            ? {
+                ...validatedData,
+                has_saved_password:
+                  passwordAction === "replace"
+                    ? true
+                    : passwordAction === "remove"
+                      ? false
+                      : p.has_saved_password,
+              }
+            : p
+        )
+      );
+      recordAction({
+        action: "profile_update",
+        category: "connection",
+        details: {
+          host: validatedData.host,
+          method: validatedData.method,
+          port: validatedData.port,
+        },
+        profileId: validatedData.id,
+        profileName: validatedData.name,
+      });
+      toast.success("Profil Berhasil Disimpan", {
+        description: `${validatedData.name} (${validatedData.host}:${validatedData.port}) tersimpan di SQLite`,
+      });
+    }
   };
 
   const handleTestConnection = async () => {
@@ -544,6 +577,40 @@ export function HomePage() {
   };
 
   const handleConnect = async (targetProfile?: Profile) => {
+    if (isCreatingNew) {
+      const candidatePayload = {
+        ...editForm,
+        port: Number(editForm.port),
+        updated_at: new Date().toISOString(),
+      };
+      const profileValidation = profileSchema.safeParse(candidatePayload);
+      if (!profileValidation.success) {
+        const issue = profileValidation.error.issues[0];
+        const pathName = issue?.path.join(".") || "Form";
+        toast.error("Validasi Profil Gagal", {
+          description: `Simpan gagal: ${pathName}: ${issue?.message || "Data tidak valid"}`,
+        });
+        return;
+      }
+      const validatedData = profileValidation.data;
+      const newProfileWithVault: Profile = {
+        ...validatedData,
+        has_saved_password: !!passwordInput,
+      };
+      setProfiles((prev) => [newProfileWithVault, ...prev]);
+      setIsCreatingNew(false);
+      recordAction({
+        action: "profile_create",
+        category: "connection",
+        details: {
+          host: validatedData.host,
+          method: validatedData.method,
+          port: validatedData.port,
+        },
+        profileId: validatedData.id,
+        profileName: validatedData.name,
+      });
+    }
     const prof = targetProfile || editForm;
     let activePass = "";
     if (prof.id === editForm.id) {
@@ -649,9 +716,10 @@ export function HomePage() {
       <ConnectionInspector
         diagnostics={diagnostics}
         editForm={editForm}
+        isCreatingNew={isCreatingNew}
         isOpen={isInspectorOpen}
         isTesting={isTesting}
-        onClose={() => setIsInspectorOpen(false)}
+        onClose={handleCloseInspector}
         onConnect={() => handleConnect()}
         onInspectSshKey={handleInspectSshKey}
         onSaveProfile={handleSaveProfile}

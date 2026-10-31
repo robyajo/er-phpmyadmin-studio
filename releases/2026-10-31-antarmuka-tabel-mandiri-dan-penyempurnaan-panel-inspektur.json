@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-31",
+  "type": "feature",
+  "status": "published",
+  "project": {
+    "name": "xphpMyAdmin — Pengelola Koneksi Database Remote"
+  },
+  "title": {
+    "id": "Tampilan Mandiri Tambah Baris, Formulir Lapang Satu Kolom, Draf Koneksi Bersih, & Isolasi Akun Mandiri",
+    "en": "Dedicated Table Row View, Spacious Single-Column Form, Draft Safety, & User-Scoped Account Isolation"
+  },
+  "body": {
+    "id": "Pembaruan ini menghadirkan antarmuka mandiri untuk penyuntingan dan penyalinan baris data tabel, penataan ulang formulir konfigurasi koneksi menjadi satu kolom vertikal yang lapang, isolasi draf koneksi baru agar tidak mengotori daftar sebelum disimpan, pemberitahuan status seketika pada setiap aksi kerja, serta pemisahan data brankas dan snapshot audit per akun pengguna.",
+    "en": "This update introduces a dedicated view for editing and duplicating table rows, streamlines connection configuration forms into a spacious single-column layout, isolates new connection drafts from polluting the list until saved, provides instant status notifications across all user actions, and ensures complete workspace and snapshot isolation between user accounts."
+  },
+  "items": [
+    {
+      "type": "new",
+      "id": "Tampilan Mandiri Tambah, Ubah, dan Salin Baris Data: Pengguna kini diarahkan ke tampilan kerja penuh saat menyunting, menyalin, atau menambah baris tabel baru, lengkap dengan fungsi penanganan data otomatis dan tombol eksekusi fleksibel.",
+      "en": "Dedicated Table Row Insert, Edit, and Duplicate View: Users are now guided to a full workspace view when editing, duplicating, or adding new rows, complete with automatic data helpers and flexible execution options."
+    },
+    {
+      "type": "improvement",
+      "id": "Isolasi Data Mandiri Antar-Akun & Snapshot Multiatribut: Setiap akun (Gratis, Pro, Tim, Bisnis) kini memiliki brankas data, riwayat kueri, profil koneksi, dan catatan audit jurnal yang terisolasi secara mandiri sehingga perpindahan akun selalu menampilkan snapshot dan ruang kerja yang akurat sesuai hak aksesnya tanpa saling menimpa.",
+      "en": "User-Scoped Workspace Isolation & Multi-Account Snapshots: Each account tier (Free, Pro, Team, Business) now maintains completely isolated connection vaults, query history, saved profiles, and audit journals, ensuring that account switching displays accurate, partitioned snapshots without cross-account data leakage."
+    },
+    {
+      "type": "improvement",
+      "id": "Pengelolaan Draf Koneksi Tanpa Polusi Daftar: Penambahan host atau terowongan baru kini beroperasi dalam mode draf mandiri pada panel kanan. Koneksi baru hanya akan muncul pada daftar server setelah pengguna secara eksplisit mengonfirmasi simpan, mencegah data sementara tertinggal.",
+      "en": "Draft-First Connection Creation Without List Pollution: Creating new hosts or tunnels now operates in an isolated draft state in the inspector. New profiles only appear in the saved servers list once explicitly confirmed by saving, preventing lingering temporary entries."
+    },
+    {
+      "type": "improvement",
+      "id": "Penataan Formulir Panel Samping Kanan Satu Kolom: Bidang isian konfigurasi server database dan server terowongan pada panel samping kanan kini tersusun rapi dalam satu kolom vertikal, memberikan keleluasaan membaca dan mengisi data.",
+      "en": "Single-Column Right Inspector Form Layout: Server and tunnel configuration fields in the right-side inspector panel are now neatly arranged in a single vertical column, ensuring comfortable reading and input."
+    },
+    {
+      "type": "improvement",
+      "id": "Pemberitahuan Status Visual Terpadu: Seluruh operasi modifikasi data, eksekusi kueri, dan penanganan kesalahan kini dilengkapi pemberitahuan visual langsung di layar untuk memastikan transparansi setiap tindakan.",
+      "en": "Unified Visual Status Notifications: All data modifications, query executions, and error handling now feature instant on-screen notifications to keep users informed of every operation status."
+    },
+    {
+      "type": "improvement",
+      "id": "Penyederhanaan Dialog Konfirmasi Penghapusan: Kotak dialog konfirmasi saat menghapus baris tabel disederhanakan dengan pesan yang ringkas, jelas, dan fokus pada objek yang dituju.",
+      "en": "Simplified Deletion Confirmation Dialog: The confirmation dialog when deleting table rows has been streamlined with a concise, clear message focused directly on the targeted object."
+    },
+    {
+      "type": "improvement",
+      "id": "Pembersihan Pemberitahuan Navigasi Menu: Notifikasi pop-up saat beralih antar-menu bilah samping maupun antar-tab studio telah dihilangkan sehingga alur navigasi terasa hening, instan, dan bebas gangguan visual.",
+      "en": "Silenced Menu Navigation Notifications: Pop-up alert notifications when switching between sidebar menus and studio tabs have been removed, making navigation silent, instantaneous, and distraction-free."
+    }
+  ]
+}

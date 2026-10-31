@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type React from "react";
 import { Activity, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { AuthGate } from "@/components/auth/auth-gate";
 import { CloudSyncModal } from "@/components/workspace/modals/cloud-sync-modal";
 import { WorkspaceHeader } from "@/components/workspace/workspace-header";
@@ -184,6 +185,7 @@ function Root() {
         <SettingsProvider>
           <BaseLayout>
             <AppShell />
+            <Toaster closeButton position="top-right" richColors />
             {/*<Activity mode={inDevelopment ? "visible" : "hidden"}>
               <TanStackRouterDevtools />
             </Activity>*/}

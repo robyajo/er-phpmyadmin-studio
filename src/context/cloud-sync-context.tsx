@@ -6,8 +6,10 @@ import {
   exportCloudBackupJson,
   getCloudSyncConfig,
   getStoredJournal,
+  getStoredProfiles,
   getStoredQueryHistory,
   getStoredSnippets,
+  getUserScopeKey,
   importCloudBackupJson,
   loginToCloudBackend,
   logoutCloudBackend,
@@ -131,6 +133,20 @@ export function CloudSyncProvider({
     setConfig(getCloudSyncConfig());
   };
 
+  const notifyAccountSwitch = () => {
+    refreshState();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("xphpmyadmin:account_switched", {
+          detail: {
+            profiles: getStoredProfiles(),
+            userScope: getUserScopeKey(),
+          },
+        })
+      );
+    }
+  };
+
   useEffect(() => {
     refreshState();
   }, []);
@@ -166,19 +182,13 @@ export function CloudSyncProvider({
     const newEntry = storeQueryHistory(query);
     setQueryHistory((prev) => [newEntry, ...prev]);
 
+    // Auto record ke cloud untuk pengguna berbayar
     const currentConfig = getCloudSyncConfig();
     const isNonFree = currentConfig.subscriptionTier !== "free";
     const autoSyncEnabled = currentConfig.autoSync ?? isNonFree;
 
     if (isNonFree && autoSyncEnabled) {
-      setIsSyncing(true);
-      triggerAutoSyncToCloud(cachedProfiles, 1000)
-        .then(() => {
-          refreshState();
-        })
-        .finally(() => {
-          setIsSyncing(false);
-        });
+      triggerAutoSyncToCloud(cachedProfiles, 1000);
     }
 
     return newEntry;
@@ -195,14 +205,7 @@ export function CloudSyncProvider({
     const autoSyncEnabled = currentConfig.autoSync ?? isNonFree;
 
     if (isNonFree && autoSyncEnabled) {
-      setIsSyncing(true);
-      triggerAutoSyncToCloud(cachedProfiles, 600)
-        .then(() => {
-          refreshState();
-        })
-        .finally(() => {
-          setIsSyncing(false);
-        });
+      triggerAutoSyncToCloud(cachedProfiles, 500);
     }
 
     return newEntry;
@@ -217,42 +220,20 @@ export function CloudSyncProvider({
     const autoSyncEnabled = currentConfig.autoSync ?? isNonFree;
 
     if (isNonFree && autoSyncEnabled) {
-      setIsSyncing(true);
-      triggerAutoSyncToCloud(cachedProfiles, 600)
-        .then(() => {
-          refreshState();
-        })
-        .finally(() => {
-          setIsSyncing(false);
-        });
+      triggerAutoSyncToCloud(cachedProfiles, 500);
     }
   };
 
   const handleUpdateConfig = (updates: Partial<CloudSyncConfig>) => {
     const updated = updateCloudSyncConfig(updates);
     setConfig(updated);
-
-    // Saat mengatur/mengubah konfigurasi, sinkronkan perubahan jika user berlangganan
-    const isNonFree = updated.subscriptionTier !== "free";
-    const autoSyncEnabled = updated.autoSync ?? isNonFree;
-
-    if (isNonFree && autoSyncEnabled) {
-      setIsSyncing(true);
-      triggerAutoSyncToCloud(cachedProfiles, 600)
-        .then(() => {
-          refreshState();
-        })
-        .finally(() => {
-          setIsSyncing(false);
-        });
-    }
   };
 
   const handleSyncNow = async (profiles?: Profile[], tokenOverride?: string) => {
     setIsSyncing(true);
     try {
       const activeProfiles =
-        profiles && profiles.length > 0 ? profiles : cachedProfiles;
+        profiles && profiles.length > 0 ? profiles : getStoredProfiles();
       const result = await syncWithCloudBackend(activeProfiles, tokenOverride);
       refreshState();
       return result;
@@ -265,7 +246,7 @@ export function CloudSyncProvider({
     setIsSyncing(true);
     try {
       const result = await pullFromCloudBackend(tokenOverride);
-      refreshState();
+      notifyAccountSwitch();
       return result;
     } finally {
       setIsSyncing(false);
@@ -276,7 +257,7 @@ export function CloudSyncProvider({
     setIsSyncing(true);
     try {
       const result = await mergeWithCloudBackend(profiles, tokenOverride);
-      refreshState();
+      notifyAccountSwitch();
       return result;
     } finally {
       setIsSyncing(false);
@@ -290,11 +271,13 @@ export function CloudSyncProvider({
       try {
         const pullRes = await pullFromCloudBackend();
         if (!pullRes.success || !pullRes.data?.profiles?.length) {
-          await triggerAutoSyncToCloud(cachedProfiles, 0);
+          await triggerAutoSyncToCloud(getStoredProfiles(), 0);
+        } else {
+          notifyAccountSwitch();
         }
       } catch {
         // fallback to push if pull fails
-        await triggerAutoSyncToCloud(cachedProfiles, 0).catch(() => {});
+        await triggerAutoSyncToCloud(getStoredProfiles(), 0).catch(() => {});
       } finally {
         refreshState();
         setIsSyncing(false);
@@ -304,7 +287,7 @@ export function CloudSyncProvider({
 
   const handleLogin = async (email: string, pass: string) => {
     const res = await loginToCloudBackend(email, pass);
-    refreshState();
+    notifyAccountSwitch();
     if (res.success) {
       await syncAfterAuth();
     }
@@ -319,7 +302,7 @@ export function CloudSyncProvider({
     billingCycle?: BillingCycle
   ) => {
     const res = await registerToCloudBackend(name, email, pass, plan, billingCycle);
-    refreshState();
+    notifyAccountSwitch();
     if (res.success) {
       await syncAfterAuth();
     }
@@ -332,7 +315,7 @@ export function CloudSyncProvider({
     provider?: string
   ) => {
     saveAuthSession(token, user, provider);
-    refreshState();
+    notifyAccountSwitch();
     syncAfterAuth();
   };
 
@@ -343,7 +326,7 @@ export function CloudSyncProvider({
     image?: string
   ) => {
     const res = await oauthLoginCloudBackend(provider, email, name, image);
-    refreshState();
+    notifyAccountSwitch();
     if (res.success) {
       await syncAfterAuth();
     }
@@ -358,7 +341,7 @@ export function CloudSyncProvider({
     refreshState();
     if (res.success && plan !== "free") {
       setIsSyncing(true);
-      triggerAutoSyncToCloud(cachedProfiles, 0)
+      triggerAutoSyncToCloud(getStoredProfiles(), 0)
         .then(() => {
           refreshState();
         })
@@ -371,7 +354,7 @@ export function CloudSyncProvider({
 
   const handleLogout = () => {
     logoutCloudBackend();
-    refreshState();
+    notifyAccountSwitch();
   };
 
   const handleClearJournal = () => {

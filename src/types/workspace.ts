@@ -1,6 +1,8 @@
 export type WorkspaceTabId =
   | "databases"
   | "structure"
+  | "browse"
+  | "insert"
   | "sql"
   | "search"
   | "operations"
