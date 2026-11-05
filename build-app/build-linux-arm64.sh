@@ -14,13 +14,13 @@ echo ""
 
 # Pastikan dependensi terpasang
 if [ ! -d "node_modules" ]; then
-  echo "➜ Memasang dependensi via Yarn..."
-  yarn install --frozen-lockfile
+  echo "➜ Memasang dependensi via pnpm..."
+  pnpm install --frozen-lockfile
 fi
 
 # Pembuatan installer Debian/Ubuntu ARM64 (.deb) dan paket mandiri (.zip)
 echo "➜ Memulai pembuatan installer .deb ARM64 dan paket distribusi..."
-yarn electron-forge make --targets @electron-forge/maker-deb,@electron-forge/maker-zip --platform=linux --arch=arm64
+pnpm electron-forge make --targets @electron-forge/maker-deb,@electron-forge/maker-zip --platform=linux --arch=arm64
 
 echo ""
 echo "✔ Installer Linux ARM64 .deb berhasil dibuat!"

@@ -182,3 +182,32 @@ html.dark {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Allow text selection and copying in toast notifications */
+[data-sonner-toaster],
+[data-sonner-toast],
+[data-sonner-toast] *,
+.cn-toast,
+[data-title],
+[data-description] {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-description] {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    max-height: 280px;
+    overflow-y: auto;
+    cursor: text;
+}
+
+[data-sonner-toast] button,
+[data-sonner-toast] [data-button],
+[data-sonner-toast] [data-close-button] {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    cursor: pointer !important;
+}

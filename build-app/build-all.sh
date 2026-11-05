@@ -15,8 +15,8 @@ echo ""
 
 # Pastikan dependensi terpasang
 if [ ! -d "node_modules" ]; then
-  echo "➜ Memasang dependensi via Yarn..."
-  yarn install --frozen-lockfile
+  echo "➜ Memasang dependensi via pnpm..."
+  pnpm install --frozen-lockfile
 fi
 
 echo "--------------------------------------------------------"
@@ -48,5 +48,5 @@ echo "========================================================"
 echo "  ✔ Seluruh Berkas Installer Berhasil Dibuat!          "
 echo "========================================================"
 echo "Daftar berkas installer siap pasang di out/make:"
-find "$ROOT_DIR/out/make" -type f
+find "$ROOT_DIR/out/make" -type f \( -name "*.deb" -o -name "*.dmg" -o -name "*.exe" -o -name "*.zip" \) 2>/dev/null || true
 echo "========================================================"

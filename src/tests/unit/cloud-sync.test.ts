@@ -401,6 +401,7 @@ describe("Cloud Sync & State Journaling (er-backend)", () => {
       action: "database_create",
       category: "database",
       database: "pro_unique_db",
+      details: {},
     });
     const proJournal = getStoredJournal();
     expect(proJournal.some((j) => j.database === "pro_unique_db")).toBe(true);

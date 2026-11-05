@@ -39,8 +39,7 @@ Whether you are connecting directly to local development servers or tunneling th
 - **Visual Data Protection**: Protective confirmation modals before destructive actions (table truncate, table drop, database drop) to prevent accidental data loss.
 
 ### 3. 📤 Multi-Format Export & Import
-- **Multi-Format Export**: Back up entire schemas or specific table data into standard formats: **SQL Dump**, **CSV**, **JSON**, and **XML**.
-- **Flexible Data Import**: Restore standard `.sql` script files, map `.csv` files directly to tables with custom delimiters, or import `.json` backups with real-time execution feedback.
+- **Multi-Format Export**: Back up entire schemas or specific table data into standard formats: **SQL Dump**, **CSV**, **JSON**, and **XML**.\n- **Flexible Data Import**: Restore standard `.sql` script files, map `.csv` files directly to tables with custom delimiters, or import `.json` backups with real-time execution feedback.
 
 ### 4. 🔍 Deep Search & Stored Routines
 - **Cross-Table Search**: Search across all database tables simultaneously with fuzzy keyword matching, exact matches, or regex patterns.
@@ -108,14 +107,14 @@ app-desktop/
 ### Prerequisites
 
 - **Node.js**: `v20` or `v22+`
-- **Package Manager**: `yarn` (`v1.22+`)
+- **Package Manager**: `pnpm` (`v10+` / `v12+`)
 
 ### 1. Clone & Install Dependencies
 
 ```bash
 git clone https://github.com/xmazlan/xphpmyadmin.git
 cd xphpmyadmin/app-desktop
-yarn install
+pnpm install
 ```
 
 ### 2. Environment Variables
@@ -136,7 +135,7 @@ VITE_CLOUD_AUTH_URL=https://www.er-service.duckdns.org/api/auth
 ### 3. Run Development Server
 
 ```bash
-yarn start
+pnpm start
 ```
 
 ---
@@ -147,19 +146,19 @@ Build cross-platform packages using Electron Forge:
 
 ```bash
 # Package for current operating system
-yarn package
+pnpm package
 
 # Platform-specific packaging
-yarn package:mac        # macOS Apple Silicon (arm64)
-yarn package:mac-intel  # macOS Intel (x64)
-yarn package:win        # Windows (x64)
-yarn package:linux      # Linux (x64)
-yarn package:linux-arm  # Linux (arm64)
+pnpm package:mac        # macOS Apple Silicon (arm64)
+pnpm package:mac-intel  # macOS Intel (x64)
+pnpm package:win        # Windows (x64)
+pnpm package:linux      # Linux (x64)
+pnpm package:linux-arm  # Linux (arm64)
 
 # Create installers / distributions (DMG, DEB, RPM, Squirrel)
-yarn make:mac           # macOS DMG & ZIP
-yarn make:win           # Windows Squirrel Installer (.exe) & ZIP
-yarn make:linux         # Linux .deb & .rpm
+pnpm make:mac           # macOS DMG & ZIP
+pnpm make:win           # Windows Squirrel Installer (.exe) & ZIP
+pnpm make:linux         # Linux .deb & .rpm
 ```
 
 Distribution artifacts will be placed in the `out/` directory.
@@ -172,13 +171,13 @@ We enforce high test coverage across database schemas, authentication flows, and
 
 ```bash
 # Run Vitest unit tests
-yarn test
+pnpm test
 
 # Run tests in watch mode
-yarn test:watch
+pnpm test:watch
 
 # Run TypeScript type-check
-yarn tsc --noEmit
+pnpm exec tsc --noEmit
 ```
 
 All 41 test suites pass with full assertion integrity:

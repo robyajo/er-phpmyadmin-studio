@@ -8,9 +8,9 @@ This project uses **Ultracite**, a zero-config preset that enforces strict code 
 
 ## Quick Reference
 
-- **Format code**: `yarn run fix` (atau `yarn ultracite fix`)
-- **Check for issues**: `yarn run check` (atau `yarn ultracite check`)
-- **Diagnose setup**: `yarn ultracite doctor`
+- **Format code**: `pnpm run fix` (atau `pnpm ultracite fix`)
+- **Check for issues**: `pnpm run check` (atau `pnpm ultracite check`)
+- **Diagnose setup**: `pnpm ultracite doctor`
 
 Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
 
@@ -124,4 +124,4 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 
 ---
 
-Most formatting and common issues are automatically fixed by Biome. Run `yarn run fix` before committing to ensure compliance.
+Most formatting and common issues are automatically fixed by Biome. Run `pnpm run fix` before committing to ensure compliance.

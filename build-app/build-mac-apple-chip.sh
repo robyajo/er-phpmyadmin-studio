@@ -14,13 +14,13 @@ echo ""
 
 # Pastikan dependensi terpasang
 if [ ! -d "node_modules" ]; then
-  echo "➜ Memasang dependensi via Yarn..."
-  yarn install --frozen-lockfile
+  echo "➜ Memasang dependensi via pnpm..."
+  pnpm install --frozen-lockfile
 fi
 
 # Pembuatan installer / distributable (make)
 echo "➜ Memulai pembuatan paket distribusi installer (make)..."
-yarn electron-forge make --platform=darwin --arch=arm64
+pnpm electron-forge make --platform=darwin --arch=arm64
 
 echo ""
 echo "✔ Installer / Paket Distribusi Mac Apple Silicon berhasil dibuat!"

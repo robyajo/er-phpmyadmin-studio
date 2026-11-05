@@ -152,8 +152,17 @@ function AppShell() {
                   `${res.syncedItems} item disinkronkan ke cloud database.`,
               });
             } else if (res.error) {
+              const errorMessage = res.error;
               toast.error("Gagal sinkronisasi manual", {
-                description: res.error,
+                description: errorMessage,
+                duration: 20000,
+                action: {
+                  label: "Salin Error",
+                  onClick: () => {
+                    navigator.clipboard.writeText(errorMessage);
+                    toast.info("Pesan error berhasil disalin ke papan klip!");
+                  },
+                },
               });
             }
           });

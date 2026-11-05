@@ -143,7 +143,7 @@ npx shadcn@latest add <component-name>
 npx shadcn@latest add dropdown-menu
 ```
 
-> **Catatan Paket Manajer**: Repositori `app-desktop` menggunakan **`yarn`** (`yarn.lock`). Untuk menambahkan dependensi gunakan `yarn add` / `yarn add -D`.
+> **Catatan Paket Manajer**: Repositori `app-desktop` menggunakan **`pnpm`** (`pnpm-lock.yaml`). Untuk menambahkan dependensi gunakan `pnpm add` / `pnpm add -D`.
 
 ---
 

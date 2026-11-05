@@ -14,16 +14,16 @@ echo ""
 
 # Pastikan dependensi terpasang
 if [ ! -d "node_modules" ]; then
-  echo "➜ Memasang dependensi via Yarn..."
-  yarn install --frozen-lockfile
+  echo "➜ Memasang dependensi via pnpm..."
+  pnpm install --frozen-lockfile
 fi
 
 # Jika di Windows, buat Setup.exe penuh; jika di sistem lain, gunakan MakerZIP
 echo "➜ Memulai pembuatan paket distribusi Windows..."
 if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* || "$OSTYPE" == "win32"* ]] || command -v mono >/dev/null 2>&1; then
-  yarn electron-forge make --platform=win32 --arch=x64
+  pnpm electron-forge make --platform=win32 --arch=x64
 else
-  yarn electron-forge make --targets @electron-forge/maker-zip --platform=win32 --arch=x64
+  pnpm electron-forge make --targets @electron-forge/maker-zip --platform=win32 --arch=x64
 fi
 
 echo ""

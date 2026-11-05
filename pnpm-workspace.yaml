@@ -1,0 +1,7 @@
+allowBuilds:
+  cpu-features: true
+  electron-winstaller: true
+  esbuild: true
+  ssh2: true
+blockExoticSubdeps: false
+nodeLinker: hoisted

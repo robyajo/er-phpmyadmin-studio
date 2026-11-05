@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { app, BrowserWindow, nativeTheme } from "electron";
+import { app, BrowserWindow, Menu, MenuItem, nativeTheme } from "electron";
 import { ipcMain } from "electron/main";
 import {
   installExtension,
@@ -91,6 +91,26 @@ function createWindow() {
     width: 1240,
   });
   ipcContext.setMainWindow(mainWindow);
+
+  // Enable right-click context menu with Copy / Cut / Paste / Select All across the app
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    const menu = new Menu();
+
+    if (params.selectionText && params.selectionText.trim().length > 0) {
+      menu.append(new MenuItem({ role: "copy", label: "Salin (Copy)" }));
+      menu.append(new MenuItem({ type: "separator" }));
+    }
+
+    if (params.isEditable) {
+      menu.append(new MenuItem({ role: "cut", label: "Potong (Cut)" }));
+      menu.append(new MenuItem({ role: "copy", label: "Salin (Copy)" }));
+      menu.append(new MenuItem({ role: "paste", label: "Tempel (Paste)" }));
+      menu.append(new MenuItem({ type: "separator" }));
+    }
+
+    menu.append(new MenuItem({ role: "selectAll", label: "Pilih Semua (Select All)" }));
+    menu.popup();
+  });
 
   const notifyWindowState = () => {
     if (mainWindow && !mainWindow.isDestroyed()) {

@@ -4,6 +4,7 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 lerna-debug.log*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
@@ -42,8 +43,9 @@ typings/
 # TypeScript cache
 *.tsbuildinfo
 
-# Optional npm cache directory
+# Optional npm/pnpm cache directory
 .npm
+.pnpm-store
 
 # Optional eslint cache
 .eslintcache
@@ -91,10 +93,6 @@ dist/
 
 # Electron-Forge
 out/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
 /test-results/
 /playwright-report/
 /blob-report/
