@@ -1,19 +1,39 @@
 {
   "date": "2026-11-06",
-  "type": "improvement",
+  "type": "feature",
   "status": "published",
   "project": {
     "name": "xphpMyAdmin — Pengelola Koneksi Database Remote"
   },
   "title": {
-    "id": "Optimasi Distribusi Aplikasi, Keandalan Paket Desktop, & Stabilitas Sistem",
-    "en": "Distribution Optimization, Desktop Packaging Reliability, & System Stability"
+    "id": "Fitur Duplikasi Koneksi, Kemudahan Salin Pesan, & Optimasi Sistem",
+    "en": "Connection Duplication Feature, Streamlined Message Copying, & System Boost"
   },
   "body": {
-    "id": "Pembaruan ini meningkatkan keandalan pembuatan paket distribusi aplikasi desktop, mempercepat waktu persiapan dan pembaruan sistem di semua platform, serta memastikan stabilitas menyeluruh pada seluruh modul layanan data dan pengujian otomatis.",
-    "en": "This update improves desktop application distribution reliability, accelerates installation and system build times across all operating systems, and reinforces overall stability across database workspace modules and automated test suites."
+    "id": "Pembaruan ini menghadirkan fitur klon koneksi host untuk memudahkan pembuatan profil server baru tanpa mengisi dari awal, dukungan penyalinan pesan sistem dan menu klik kanan desktop, serta peningkatan efisiensi distribusi aplikasi multi-platform.",
+    "en": "This update introduces a connection cloning feature to quickly create new server profiles without reconfiguring from scratch, brings full text copying support and native desktop right-click menus, and optimizes multi-platform distribution efficiency."
   },
   "items": [
+    {
+      "type": "new",
+      "id": "Fitur Duplikasi & Klon Profil Koneksi: Pengguna kini dapat menggandakan konfigurasi server database atau terowongan yang sudah ada dengan satu klik, memudahkan pembuatan profil baru tanpa perlu mengisi ulang seluruh parameter dari awal.",
+      "en": "Connection Profile Duplication & Cloning Feature: Users can now clone existing database server or tunnel configurations with a single click, eliminating the need to re-enter all connection parameters from scratch."
+    },
+    {
+      "type": "new",
+      "id": "Menu Konteks Kartu & Menu Bar Aplikasi Desktop: Menyediakan menu bar desktop (Berkas, Sunting, Koneksi, Tampilan, Bantuan) dan menu klik kanan pada kartu koneksi untuk menghubungkan, mengedit, menduplikasi, dan menyalin parameter secara instan.",
+      "en": "Card Context Menu & Desktop Application Menu Bar: Implements native desktop menubar and right-click context menu on connection cards for connecting, editing, duplicating, and copying parameters instantly."
+    },
+    {
+      "type": "fix",
+      "id": "Persistensi Password Brankas Lokal & Sinkronisasi Cloud: Password database kini tersimpan permanen di brankas lokal (Local Vault) dan ikut tersinkronisasi ke Neon Cloud Backend, sehingga pengguna tidak perlu lagi memasukkan ulang password setiap kali membuka aplikasi.",
+      "en": "Local Vault Password Persistence & Cloud Sync: Database passwords are now permanently stored in the local vault and synchronized with Neon Cloud Backend, eliminating the need to re-enter credentials upon application restarts."
+    },
+    {
+      "type": "improvement",
+      "id": "Kemudahan Penyalinan Pesan Error & Menu Konteks Desktop: Notifikasi sistem kini mendukung seleksi teks langsung, tombol salin instan, klik dua kali untuk menyalin, serta menu klik kanan native desktop untuk memudahkan pemeriksaan kendala.",
+      "en": "Streamlined Error Copying & Native Desktop Context Menu: System notifications now support direct text selection, instant copy buttons, double-click to copy, and a native desktop right-click context menu for effortless diagnostic review."
+    },
     {
       "type": "improvement",
       "id": "Optimalisasi Pembuatan Paket Distribusi Multi-Platform: Jalur pembuatan paket aplikasi mandiri untuk Linux, macOS, dan Windows kini bekerja lebih cepat, efisien dalam penggunaan ruang penyimpanan, serta bebas hambatan pada seluruh perangkat.",

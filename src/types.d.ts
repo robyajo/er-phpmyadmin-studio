@@ -32,7 +32,27 @@ interface ElectronWindowApi {
   ) => () => void;
 }
 
+interface UpdateProgressData {
+  bytes: number;
+  total: number;
+  percent: number;
+}
+
+interface ElectronUpdaterApi {
+  startDownload: (data: {
+    url: string;
+    fileName: string;
+  }) => Promise<{ error?: string; filePath?: string; success: boolean }>;
+  openInstaller: (
+    filePath: string
+  ) => Promise<{ error?: string; success: boolean }>;
+  onProgress: (callback: (data: UpdateProgressData) => void) => () => void;
+  onComplete: (callback: (data: { filePath: string }) => void) => () => void;
+  onError: (callback: (data: { error: string }) => void) => () => void;
+}
+
 interface Window {
   electronOAuth?: ElectronOAuthApi;
   electronWindow?: ElectronWindowApi;
+  electronUpdater?: ElectronUpdaterApi;
 }

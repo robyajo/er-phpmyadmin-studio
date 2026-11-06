@@ -35,6 +35,7 @@ export const profileSchema = z.object({
   last_used_at: z.string().nullable().optional(),
   method: z.enum(["direct", "ssh"]).default("direct"),
   name: z.string().min(1).max(255),
+  password: z.string().nullable().optional(),
   port: z.number().int().min(1).max(65_535).default(3306),
   ssh: sshConfigSchema.nullable().optional(),
   tls: tlsConfigSchema.default({ enabled: true, verify: true }),

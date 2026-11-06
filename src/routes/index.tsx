@@ -79,15 +79,17 @@ export function HomePage() {
     }
   }, [profiles, selectedId, isCreatingNew]);
 
+
   // Handlers
   const handleSelectHost = (profile: Profile) => {
     if (isCreatingNew) {
       setIsCreatingNew(false);
     }
+    const existingPass = savedPasswords[profile.id] ?? profile.password ?? "";
     setSelectedId(profile.id);
-    setEditForm({ ...profile });
-    setPasswordAction(profile.has_saved_password ? "keep" : "replace");
-    setPasswordInput(savedPasswords[profile.id] || "");
+    setEditForm({ ...profile, password: existingPass });
+    setPasswordAction(profile.has_saved_password || !!existingPass ? "keep" : "replace");
+    setPasswordInput(existingPass);
     setShowSshPassword(false);
     setDiagnostics(null);
     if (!isInspectorOpen) {
@@ -278,6 +280,99 @@ export function HomePage() {
     });
   };
 
+  const handleDuplicateHost = (source: Profile, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    const newId = crypto.randomUUID();
+    const sourcePass = savedPasswords[source.id] || source.password || "";
+    const duplicated: Profile = {
+      ...JSON.parse(JSON.stringify(source)),
+      connection_revision: 1,
+      created_at: new Date().toISOString(),
+      favorite: false,
+      has_saved_password: !!sourcePass,
+      id: newId,
+      last_used_at: null,
+      name: `${source.name} (Salinan)`,
+      password: sourcePass || undefined,
+      updated_at: new Date().toISOString(),
+    };
+
+    setProfiles((prev) => [duplicated, ...prev]);
+
+    if (savedPasswords[source.id]) {
+      setSavedPasswords((prev) => ({
+        ...prev,
+        [newId]: savedPasswords[source.id],
+      }));
+    }
+
+    setSelectedId(newId);
+    setEditForm({ ...duplicated });
+    setPasswordAction(duplicated.has_saved_password ? "keep" : "replace");
+    setPasswordInput(savedPasswords[source.id] || "");
+    setShowSshPassword(false);
+    setDiagnostics(null);
+    setIsInspectorOpen(true);
+    setIsCreatingNew(false);
+
+    recordAction({
+      action: "profile_create",
+      category: "connection",
+      details: { clonedFrom: source.id, method: duplicated.method },
+      profileId: newId,
+      profileName: duplicated.name,
+    });
+
+    toast.success(`Koneksi "${duplicated.name}" berhasil diduplikasi!`, {
+      description: "Profil berhasil dikloning. Sesuaikan konfigurasi pada panel kanan lalu simpan.",
+    });
+  };
+
+  // Handle global menubar commands and shortcuts
+  useEffect(() => {
+    const handleAddConn = () => handleAddNewHost();
+    const handleAddSsh = () => handleAddNewSshTunnel();
+    const handleFocusSearch = () => {
+      const el = document.querySelector<HTMLInputElement>("input[placeholder*='Cari']");
+      el?.focus();
+    };
+    const handleFilterMethod = (e: any) => {
+      if (e.detail) {
+        handleMethodFilterChange(e.detail);
+      }
+    };
+    const handleToggleFav = () => {
+      setFavoritesOnly((prev) => !prev);
+    };
+    const handleSelectProf = (e: any) => {
+      if (e.detail) {
+        const found = profiles.find((p) => p.id === e.detail);
+        if (found) {
+          handleSelectHost(found);
+        }
+      }
+    };
+
+    window.addEventListener("xphpmyadmin:add_connection", handleAddConn);
+    window.addEventListener("xphpmyadmin:add_ssh_tunnel", handleAddSsh);
+    window.addEventListener("xphpmyadmin:focus_search", handleFocusSearch);
+    window.addEventListener("xphpmyadmin:filter_method", handleFilterMethod);
+    window.addEventListener("xphpmyadmin:toggle_favorite_filter", handleToggleFav);
+    window.addEventListener("xphpmyadmin:select_profile", handleSelectProf);
+
+    return () => {
+      window.removeEventListener("xphpmyadmin:add_connection", handleAddConn);
+      window.removeEventListener("xphpmyadmin:add_ssh_tunnel", handleAddSsh);
+      window.removeEventListener("xphpmyadmin:focus_search", handleFocusSearch);
+      window.removeEventListener("xphpmyadmin:filter_method", handleFilterMethod);
+      window.removeEventListener("xphpmyadmin:toggle_favorite_filter", handleToggleFav);
+      window.removeEventListener("xphpmyadmin:select_profile", handleSelectProf);
+    };
+  }, [profiles, handleAddNewHost, handleAddNewSshTunnel, handleMethodFilterChange]);
+
+
   const handleDeleteHost = (p: Profile) => {
     setDeleteTargetProfile(p);
   };
@@ -328,6 +423,7 @@ export function HomePage() {
       });
       return;
     }
+    let finalPassword = savedPasswords[editForm.id] || editForm.password || "";
     if (passwordAction === "replace") {
       const passValidation = passwordActionSchema.safeParse({
         action: "replace",
@@ -340,8 +436,10 @@ export function HomePage() {
         });
         return;
       }
+      finalPassword = passwordInput;
       setSavedPasswords((prev) => ({ ...prev, [editForm.id]: passwordInput }));
     } else if (passwordAction === "remove") {
+      finalPassword = "";
       setSavedPasswords((prev) => {
         const next = { ...prev };
         delete next[editForm.id];
@@ -353,7 +451,8 @@ export function HomePage() {
     if (isCreatingNew) {
       const newProfile: Profile = {
         ...validatedData,
-        has_saved_password: passwordAction === "replace" && !!passwordInput,
+        has_saved_password: !!finalPassword,
+        password: finalPassword || undefined,
       };
       setProfiles((prev) => [newProfile, ...prev]);
       setIsCreatingNew(false);
@@ -374,19 +473,14 @@ export function HomePage() {
         description: `${validatedData.name} (${validatedData.host}:${validatedData.port}) telah ditambahkan ke daftar koneksi.`,
       });
     } else {
+      const updatedProfile: Profile = {
+        ...validatedData,
+        has_saved_password: !!finalPassword,
+        password: finalPassword || undefined,
+      };
       setProfiles((prev) =>
         prev.map((p) =>
-          p.id === validatedData.id
-            ? {
-                ...validatedData,
-                has_saved_password:
-                  passwordAction === "replace"
-                    ? true
-                    : passwordAction === "remove"
-                      ? false
-                      : p.has_saved_password,
-              }
-            : p
+          p.id === validatedData.id ? updatedProfile : p
         )
       );
       recordAction({
@@ -625,8 +719,15 @@ export function HomePage() {
       activePass = savedPasswords[prof.id] ?? "";
     }
 
-    if (prof.id === editForm.id) {
+    if (activePass) {
       setSavedPasswords((prev) => ({ ...prev, [prof.id]: activePass }));
+      setProfiles((prev) =>
+        prev.map((p) =>
+          p.id === prof.id
+            ? { ...p, has_saved_password: true, password: activePass }
+            : p
+        )
+      );
     }
     const connParams = {
       database: undefined,
@@ -702,7 +803,9 @@ export function HomePage() {
         methodFilter={methodFilter}
         onAddNewHost={handleAddNewHost}
         onAddNewSshTunnel={handleAddNewSshTunnel}
+        onConnectHost={(p) => handleConnect(p)}
         onDeleteHost={handleDeleteHost}
+        onDuplicateHost={handleDuplicateHost}
         onMethodFilterChange={handleMethodFilterChange}
         onSelectHost={handleSelectHost}
         onSortByChange={setSortBy}
@@ -721,6 +824,7 @@ export function HomePage() {
         isTesting={isTesting}
         onClose={handleCloseInspector}
         onConnect={() => handleConnect()}
+        onDuplicate={() => handleDuplicateHost(editForm)}
         onInspectSshKey={handleInspectSshKey}
         onSaveProfile={handleSaveProfile}
         onTestConnection={handleTestConnection}

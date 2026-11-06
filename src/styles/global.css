@@ -140,6 +140,10 @@
         -webkit-app-region: drag;
     }
 
+    .no-drag {
+        -webkit-app-region: no-drag;
+    }
+
     button:not(:disabled),
     [role=\"button\"]:not(:disabled) {
         cursor: pointer;

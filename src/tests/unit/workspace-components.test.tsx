@@ -1,3 +1,4 @@
+import { AppMenubar } from "@/components/workspace/app-menubar";
 import { InsertTab } from "@/components/workspace/tabs/insert-tab";
 import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -146,6 +147,32 @@ describe("Workspace Components", () => {
     expect(deleteButtons.length).toBeGreaterThan(0);
     deleteButtons[0].click();
     expect(onDeleteHostMock).toHaveBeenCalledWith(INITIAL_PROFILES[0]);
+  });
+
+  it("renders ConnectionGrid and triggers onDuplicateHost", () => {
+    const onDuplicateHostMock = vi.fn();
+    const { getAllByLabelText } = render(
+      <ConnectionGrid
+        favoritesOnly={false}
+        filteredProfiles={INITIAL_PROFILES}
+        isInspectorOpen={true}
+        onAddNewHost={vi.fn()}
+        onDeleteHost={vi.fn()}
+        onDuplicateHost={onDuplicateHostMock}
+        onSelectHost={vi.fn()}
+        onSortByChange={vi.fn()}
+        onToggleFavorite={vi.fn()}
+        onToggleFavoriteFilter={vi.fn()}
+        onToggleInspector={vi.fn()}
+        selectedId={INITIAL_PROFILES[0].id}
+        sortBy="recent"
+      />
+    );
+
+    const duplicateButtons = getAllByLabelText(/duplikat koneksi/i);
+    expect(duplicateButtons.length).toBeGreaterThan(0);
+    duplicateButtons[0].click();
+    expect(onDuplicateHostMock).toHaveBeenCalledWith(INITIAL_PROFILES[0], expect.anything());
   });
 
   it("renders ConnectionInspector correctly", () => {
@@ -640,5 +667,14 @@ describe("Workspace Components", () => {
     );
     expect(getByText(/Sisipkan baris baru ke tabel `user`/i)).toBeInTheDocument();
     expect(getByText(/Mode Baru \(INSERT\)/i)).toBeInTheDocument();
+  });
+  it("renders AppMenubar with menus and handles modal triggers", () => {
+    const { getByText } = render(<AppMenubar />);
+
+    expect(getByText("Berkas")).toBeInTheDocument();
+    expect(getByText("Sunting")).toBeInTheDocument();
+    expect(getByText("Koneksi")).toBeInTheDocument();
+    expect(getByText("Tampilan")).toBeInTheDocument();
+    expect(getByText("Bantuan")).toBeInTheDocument();
   });
 });

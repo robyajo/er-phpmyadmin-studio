@@ -488,6 +488,59 @@ export function getCachedProfiles(): Profile[] {
   return getStoredProfiles();
 }
 
+export function getStoredPasswords(scope?: string): Record<string, string> {
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.PASSWORDS || "xphpmyadmin_vault_passwords", resolvedScope);
+
+  const passwords: Record<string, string> = {
+    "a1c3d4e5-3333-4444-8888-3456789abcde": "",
+    "e4a1b2c3-1111-4444-8888-123456789abc": "secret",
+  };
+
+  if (isStorageAvailable()) {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          Object.assign(passwords, parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // Also check stored profiles for embedded passwords
+  try {
+    const storedProfiles = getStoredProfiles(resolvedScope);
+    for (const prof of storedProfiles) {
+      if (prof.id && prof.password) {
+        passwords[prof.id] = prof.password;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return passwords;
+}
+
+export function setStoredPasswords(passwords: Record<string, string>, scope?: string): void {
+  if (!passwords || typeof passwords !== "object") return;
+  const resolvedScope = scope || getUserScopeKey();
+  const storageKey = getScopedKey(LOCAL_STORAGE_KEYS.PASSWORDS || "xphpmyadmin_vault_passwords", resolvedScope);
+
+  if (isStorageAvailable()) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(passwords));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+
 function isStorageAvailable(): boolean {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
 }
@@ -781,8 +834,17 @@ export function buildCloudSyncSnapshot(
   userScope?: string
 ): CloudSyncSnapshot {
   const currentScope = userScope || getUserScopeKey();
-  const resolvedProfiles =
+  const rawProfiles =
     profiles && profiles.length > 0 ? profiles : getStoredProfiles(currentScope);
+  const storedPass = getStoredPasswords(currentScope);
+  const resolvedProfiles = rawProfiles.map((p) => {
+    const pass = p.password || storedPass[p.id];
+    return {
+      ...p,
+      has_saved_password: p.has_saved_password || !!pass,
+      password: pass || undefined,
+    };
+  });
   const journal = getStoredJournal(currentScope);
   const queryHistory = getStoredQueryHistory(currentScope);
   const snippets = getStoredSnippets(currentScope);
@@ -891,6 +953,17 @@ export function importCloudBackupJson(
             // fallback
           }
           setStoredProfiles(mergedProfiles, resolvedScope);
+          const passMap = getStoredPasswords(resolvedScope);
+          let passChanged = false;
+          for (const sp of snapshot.profiles) {
+            if (sp.id && sp.password) {
+              passMap[sp.id] = sp.password;
+              passChanged = true;
+            }
+          }
+          if (passChanged) {
+            setStoredPasswords(passMap, resolvedScope);
+          }
         }
         if (snapshot.journal?.length) {
           localStorage.setItem(

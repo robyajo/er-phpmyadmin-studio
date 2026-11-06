@@ -2,9 +2,11 @@ import type React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ActiveTabItem } from "@/components/workspace/types";
 import {
+  getStoredPasswords,
   getStoredProfiles,
   mergeProfilesLists,
   setCachedProfiles,
+  setStoredPasswords,
   setStoredProfiles,
 } from "@/services/cloud-sync";
 import type { Profile } from "@/types/connection";
@@ -41,10 +43,13 @@ export function ConnectionProvider({
     return getStoredProfiles();
   });
 
-  const [savedPasswords, setSavedPasswords] = useState<Record<string, string>>({
-    "a1c3d4e5-3333-4444-8888-3456789abcde": "",
-    "e4a1b2c3-1111-4444-8888-123456789abc": "secret",
+  const [savedPasswords, setSavedPasswords] = useState<Record<string, string>>(() => {
+    return getStoredPasswords();
   });
+
+  useEffect(() => {
+    setStoredPasswords(savedPasswords);
+  }, [savedPasswords]);
   const [activeTabs, setActiveTabs] = useState<ActiveTabItem[]>([
     { env: "Local", id: "tab-home", name: "Pengelola Koneksi" },
   ]);
@@ -56,6 +61,20 @@ export function ConnectionProvider({
   useEffect(() => {
     setStoredProfiles(profiles);
     setCachedProfiles(profiles);
+
+    // Sync any embedded passwords to savedPasswords map
+    let hasNew = false;
+    const nextPasswords = { ...savedPasswords };
+    for (const p of profiles) {
+      if (p.id && p.password && nextPasswords[p.id] !== p.password) {
+        nextPasswords[p.id] = p.password;
+        hasNew = true;
+      }
+    }
+    if (hasNew) {
+      setSavedPasswords(nextPasswords);
+      setStoredPasswords(nextPasswords);
+    }
   }, [profiles]);
 
   // Listen for account switch events (e.g. login/logout) and switch active profiles state
@@ -64,6 +83,7 @@ export function ConnectionProvider({
     const handleAccountSwitch = (e: any) => {
       const nextProfiles = e.detail?.profiles || getStoredProfiles();
       setProfiles(nextProfiles);
+      setSavedPasswords(getStoredPasswords());
     };
     window.addEventListener("xphpmyadmin:account_switched", handleAccountSwitch);
     return () => {

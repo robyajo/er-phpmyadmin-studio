@@ -331,7 +331,7 @@ export function InsertTab({
                     {/* Column Name */}
                     <td className="p-2.5 align-middle">
                       <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground">
-                        {isPk && <Key className="size-3 text-amber-500 shrink-0" title="Primary Key" />}
+                        {isPk && <span title="Primary Key" className="inline-flex"><Key className="size-3 text-amber-500 shrink-0" /></span>}
                         <span>{fieldName}</span>
                         {isPk && (
                           <Badge className="h-4 px-1 text-[9px] bg-amber-500/10 text-amber-600 border-amber-500/20" variant="outline">

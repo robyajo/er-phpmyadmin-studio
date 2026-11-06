@@ -35,3 +35,33 @@ contextBridge.exposeInMainWorld("electronWindow", {
     };
   },
 });
+
+contextBridge.exposeInMainWorld("electronUpdater", {
+  startDownload: (data: { url: string; fileName: string }) => {
+    return ipcRenderer.invoke("download-app-update", data);
+  },
+  openInstaller: (filePath: string) => {
+    return ipcRenderer.invoke("install-app-update", filePath);
+  },
+  onProgress: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data);
+    ipcRenderer.on("update-download-progress", listener);
+    return () => {
+      ipcRenderer.removeListener("update-download-progress", listener);
+    };
+  },
+  onComplete: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data);
+    ipcRenderer.on("update-download-complete", listener);
+    return () => {
+      ipcRenderer.removeListener("update-download-complete", listener);
+    };
+  },
+  onError: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data);
+    ipcRenderer.on("update-download-error", listener);
+    return () => {
+      ipcRenderer.removeListener("update-download-error", listener);
+    };
+  },
+});

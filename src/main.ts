@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { app, BrowserWindow, Menu, MenuItem, nativeTheme } from "electron";
+import { app, BrowserWindow, Menu, MenuItem, nativeTheme, nativeImage } from "electron";
 import { ipcMain } from "electron/main";
 import {
   installExtension,
@@ -15,6 +15,7 @@ import {
   registerOAuthIpcHandlers,
   registerProtocolClient,
 } from "./main/oauth";
+import { registerUpdaterIpcHandlers } from "./main/updater";
 import { getBasePath } from "./utils/path";
 
 let mainWindow: BrowserWindow | null = null;
@@ -25,6 +26,18 @@ registerProtocolClient();
 // Ensure single instance lock for deep links
 if (process.platform === "linux") {
   app.setName("xphpmyadmin-desktop");
+  try {
+    const homeDir = process.env.HOME || "";
+    const desktopEntryDir = path.join(homeDir, ".local/share/applications");
+    const desktopEntryFile = path.join(desktopEntryDir, "xphpmyadmin-desktop.desktop");
+    const iconFullPath = path.resolve(process.cwd(), "assets/icon.png");
+    if (fs.existsSync(desktopEntryDir) && fs.existsSync(iconFullPath) && !fs.existsSync(desktopEntryFile)) {
+      const entryContent = `[Desktop Entry]\nName=xphpMyAdmin Desktop\nComment=xphpMyAdmin Desktop Development\nExec=/usr/bin/true\nIcon=${iconFullPath}\nTerminal=false\nType=Application\nStartupWMClass=xphpmyadmin-desktop\nCategories=Development;Database;\n`;
+      fs.writeFileSync(desktopEntryFile, entryContent, "utf-8");
+    }
+  } catch {
+    // ignore
+  }
 }
 
 const isPrimaryInstance = app.requestSingleInstanceLock();
@@ -69,11 +82,12 @@ function createWindow() {
     path.join(__dirname, "../renderer/main_window/assets/icon.png"),
   ];
   const appIconPath = candidateIconPaths.find((p) => fs.existsSync(p));
+  const appIcon = appIconPath ? nativeImage.createFromPath(appIconPath) : undefined;
 
   mainWindow = new BrowserWindow({
     backgroundColor: "#07080a",
     height: 780,
-    icon: appIconPath,
+    icon: appIcon,
     minHeight: 520,
     minWidth: 720,
     title: "xphpMyAdmin Desktop",
@@ -183,6 +197,7 @@ app.whenReady().then(async () => {
     nativeTheme.themeSource = "dark";
     createWindow();
     registerOAuthIpcHandlers(() => mainWindow);
+    registerUpdaterIpcHandlers(() => mainWindow);
     await installExtensions();
     checkForUpdates();
     await setupORPC();

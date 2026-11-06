@@ -32,6 +32,7 @@ interface WorkspaceHeaderProps {
   onCloseTab: (tabId: string, e: React.MouseEvent) => void;
   onLogout?: () => void;
   onManualSync?: () => void;
+  onOpenChangelog?: () => void;
   onOpenCloudSync?: () => void;
   onSearchChange: (val: string) => void;
   onSelectTab: (tabId: string) => void;
@@ -49,6 +50,7 @@ export function WorkspaceHeader({
   onCloseTab,
   onLogout,
   onManualSync,
+  onOpenChangelog,
   onOpenCloudSync,
   onSearchChange,
   onSelectTab,
@@ -111,13 +113,13 @@ export function WorkspaceHeader({
                 <span
                   className="ml-0.5 cursor-pointer rounded p-0.5 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
                   onClick={(e) => onCloseTab(tab.id, e)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      onCloseTab(tab.id, e as any);
-                    }
-                  }}
                   role="button"
                   tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      onCloseTab(tab.id, e as unknown as React.MouseEvent);
+                    }
+                  }}
                   title={t("header.closeTab", "Tutup Tab")}
                 >
                   <X size={10} />
@@ -128,23 +130,32 @@ export function WorkspaceHeader({
         })}
       </div>
 
-      {/* Right side: Omni-search + Cloud Sync + User Profile + Language + Theme */}
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <div className="relative hidden w-28 sm:block sm:w-36 md:w-44 lg:w-60 transition-all">
+        {/* Search Input */}
+        <div className="relative hidden items-center md:flex">
           <Search
-            className="absolute top-2 left-2.5 text-muted-foreground/70"
-            size={12}
+            className="-translate-y-1/2 absolute left-2.5 top-1/2 text-muted-foreground"
+            size={13}
           />
           <input
-            className="h-7 w-full rounded-md border border-border bg-muted/40 pr-2 pl-8 text-foreground text-xs placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none"
+            className="h-7 w-32 rounded-md border border-border bg-background pr-2.5 pl-7 text-xs placeholder:text-muted-foreground/60 focus:border-ring focus:outline-hidden focus:ring-1 focus:ring-ring sm:w-44"
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t("header.searchPlaceholder", "Search hosts or databases...")}
             type="text"
             value={searchQuery}
           />
+          {searchQuery && (
+            <button
+              className="-translate-y-1/2 absolute right-2 top-1/2 rounded text-muted-foreground hover:text-foreground"
+              onClick={() => onSearchChange("")}
+              type="button"
+            >
+              <X size={11} />
+            </button>
+          )}
         </div>
 
-        {/* Cloud Sync Button & Manual Trigger */}
+        {/* Cloud Sync Quick Controls */}
         {onOpenCloudSync && (
           <div className="flex items-center gap-1">
             <button
@@ -244,12 +255,15 @@ export function WorkspaceHeader({
           </div>
         )}
 
-        <span
-          className="inline-flex items-center rounded border border-teal-500/25 bg-teal-500/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-teal-400 select-none"
-          title={t("header.versionTitle", "Versi Aplikasi xphpMyAdmin Desktop")}
+        {/* App Version Badge (Clickable to open Changelog) */}
+        <button
+          type="button"
+          onClick={onOpenChangelog}
+          className="inline-flex items-center gap-1 rounded border border-teal-500/25 bg-teal-500/10 px-2 py-0.5 font-mono text-[10px] font-medium text-teal-400 hover:bg-teal-500/20 hover:border-teal-500/40 transition-colors cursor-pointer select-none"
+          title={t("header.versionTitle", `Versi Aplikasi xphpMyAdmin Desktop v${APP_VERSION} (Klik untuk Catatan Rilis)`)}
         >
-          v{APP_VERSION}
-        </span>
+          <span>{`v${APP_VERSION}`}</span>
+        </button>
         <LangToggle />
         <ToggleTheme />
       </div>

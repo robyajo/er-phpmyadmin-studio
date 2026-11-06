@@ -1,5 +1,8 @@
 import {
+  ClipboardCopy,
+  Copy,
   Database,
+  Play,
   Plus,
   ShieldAlert,
   SlidersHorizontal,
@@ -7,6 +10,18 @@ import {
   Terminal,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import type React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +43,9 @@ interface ConnectionGridProps {
   methodFilter?: "all" | "direct" | "ssh";
   onAddNewHost: () => void;
   onAddNewSshTunnel?: () => void;
+  onConnectHost?: (p: Profile) => void;
   onDeleteHost: (p: Profile) => void;
+  onDuplicateHost?: (p: Profile, e: React.MouseEvent) => void;
   onMethodFilterChange?: (val: "all" | "direct" | "ssh") => void;
   onSelectHost: (p: Profile) => void;
   onSortByChange: (val: "recent" | "name") => void;
@@ -46,7 +63,9 @@ export function ConnectionGrid({
   methodFilter = "all",
   onAddNewHost,
   onAddNewSshTunnel,
+  onConnectHost,
   onDeleteHost,
+  onDuplicateHost,
   onMethodFilterChange,
   onSelectHost,
   onSortByChange,
@@ -56,6 +75,17 @@ export function ConnectionGrid({
   selectedId,
   sortBy,
 }: ConnectionGridProps) {
+  const handleCopyInfo = (label: string, text: string) => {
+    try {
+      navigator.clipboard.writeText(text);
+      toast.success(`${label} disalin ke clipboard!`, {
+        description: text,
+      });
+    } catch {
+      toast.error(`Gagal menyalin ${label}`);
+    }
+  };
+
   return (
     <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
       {/* Top Toolbar */}
@@ -234,111 +264,252 @@ export function ConnectionGrid({
               const isProd = p.environment === "Production";
               const isSsh = p.method === "ssh";
               return (
-                <Card
-                  className={cn(
-                    "group relative cursor-pointer rounded-lg border border-border bg-card p-3.5 transition-all hover:border-white/20 hover:bg-muted/40",
-                    isSelected &&
-                      "border-primary shadow-[0_0_12px_rgba(20,184,166,0.2)] ring-1 ring-primary",
-                    isSsh && !isSelected && "border-purple-200 hover:border-purple-400 dark:border-purple-500/20 dark:hover:border-purple-500/40"
-                  )}
-                  key={p.id}
-                  onClick={() => onSelectHost(p)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div
-                        className={cn(
-                          "flex size-8 shrink-0 items-center justify-center rounded-md border",
-                          isProd
-                            ? "border-destructive/30 bg-destructive/10 text-destructive"
-                            : isSsh
-                              ? "border-purple-200 bg-purple-100 text-purple-700 dark:border-purple-500/40 dark:bg-purple-500/10 dark:text-purple-400"
-                              : "border-border bg-muted text-primary"
-                        )}
-                      >
-                        {isSsh ? <Terminal size={15} /> : <Database size={15} />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="flex items-center gap-1.5 font-semibold text-foreground text-xs tracking-tight transition-colors group-hover:text-primary truncate">
-                          <span className="truncate">{p.name}</span>
-                          {isProd && (
-                            <ShieldAlert className="text-destructive shrink-0" size={11} />
-                          )}
-                        </h4>
-                        <p className="font-mono text-[11px] text-muted-foreground truncate">
-                          {p.host}:{p.port}
-                        </p>
-                        {isSsh && p.ssh?.host && (
-                          <p className="font-mono text-[10px] text-purple-700 dark:text-purple-400/90 truncate">
-                            via {p.ssh.username || "root"}@{p.ssh.host}:{p.ssh.port || 22}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        aria-label={`Hapus koneksi ${p.name}`}
-                        className="cursor-pointer rounded p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteHost(p);
-                        }}
-                        title="Hapus Koneksi"
-                        type="button"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                      <button
-                        aria-label={
-                          p.favorite ? "Hapus dari Favorit" : "Tambah ke Favorit"
-                        }
-                        className="cursor-pointer p-1 text-muted-foreground/70 transition-colors hover:text-amber-500"
-                        onClick={(e) => onToggleFavorite(p.id, e)}
-                        type="button"
-                      >
-                        <Star
-                          className={cn(
-                            p.favorite && "fill-amber-500 text-amber-500"
-                          )}
-                          size={13}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-border border-t pt-2 text-[10px]">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <Badge
-                        className={cn(
-                          "px-1.5 py-0 font-medium text-[9px] uppercase tracking-wide shrink-0",
-                          isProd &&
-                            "border-destructive/30 bg-destructive/10 text-destructive",
-                          p.environment === "Staging" &&
-                            "border-amber-500/30 bg-amber-500/10 text-amber-500",
-                          p.environment === "Local" &&
-                            "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
-                          p.environment === "Other" &&
-                            "border-border text-muted-foreground"
-                        )}
-                        variant="outline"
-                      >
-                        {p.environment}
-                      </Badge>
-                      {isSsh ? (
-                        <Badge
-                          className="border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-500/40 dark:bg-purple-500/10 dark:text-purple-300 px-1.5 py-0 font-medium text-[9px] truncate"
-                          variant="outline"
-                        >
-                          🔒 SSH
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground/70 text-[10px]">Direct</span>
+                <ContextMenu key={p.id}>
+                  <ContextMenuTrigger asChild>
+                    <Card
+                      className={cn(
+                        "group relative cursor-pointer rounded-lg border border-border bg-card p-3.5 transition-all hover:border-white/20 hover:bg-muted/40",
+                        isSelected &&
+                          "border-primary shadow-[0_0_12px_rgba(20,184,166,0.2)] ring-1 ring-primary",
+                        isSsh && !isSelected && "border-purple-200 hover:border-purple-400 dark:border-purple-500/20 dark:hover:border-purple-500/40"
                       )}
-                    </div>
-                    <span className="text-muted-foreground/70 truncate ml-2 text-[10px]">
-                      {p.last_used_at ? "Aktif baru-baru ini" : "Belum dibuka"}
-                    </span>
-                  </div>
-                </Card>
+                      onClick={() => onSelectHost(p)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div
+                            className={cn(
+                              "flex size-8 shrink-0 items-center justify-center rounded-md border",
+                              isProd
+                                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                                : isSsh
+                                  ? "border-purple-200 bg-purple-100 text-purple-700 dark:border-purple-500/40 dark:bg-purple-500/10 dark:text-purple-400"
+                                  : "border-border bg-muted text-primary"
+                            )}
+                          >
+                            {isSsh ? <Terminal size={15} /> : <Database size={15} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="flex items-center gap-1.5 font-semibold text-foreground text-xs tracking-tight transition-colors group-hover:text-primary truncate">
+                              <span className="truncate">{p.name}</span>
+                              {isProd && (
+                                <ShieldAlert className="text-destructive shrink-0" size={11} />
+                              )}
+                            </h4>
+                            <p className="font-mono text-[11px] text-muted-foreground truncate">
+                              {p.host}:{p.port}
+                            </p>
+                            {isSsh && p.ssh?.host && (
+                              <p className="font-mono text-[10px] text-purple-700 dark:text-purple-400/90 truncate">
+                                via {p.ssh.username || "root"}@{p.ssh.host}:{p.ssh.port || 22}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {onDuplicateHost && (
+                            <button
+                              aria-label={`Duplikat koneksi ${p.name}`}
+                              className="cursor-pointer rounded p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
+                              onClick={(e) => onDuplicateHost(p, e)}
+                              title="Duplikat / Klon Koneksi Ini"
+                              type="button"
+                            >
+                              <Copy size={13} />
+                            </button>
+                          )}
+                          <button
+                            aria-label={`Hapus koneksi ${p.name}`}
+                            className="cursor-pointer rounded p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteHost(p);
+                            }}
+                            title="Hapus Koneksi"
+                            type="button"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                          <button
+                            aria-label={
+                              p.favorite ? "Hapus dari Favorit" : "Tambah ke Favorit"
+                            }
+                            className="cursor-pointer p-1 text-muted-foreground/70 transition-colors hover:text-amber-500"
+                            onClick={(e) => onToggleFavorite(p.id, e)}
+                            type="button"
+                          >
+                            <Star
+                              className={cn(
+                                p.favorite && "fill-amber-500 text-amber-500"
+                              )}
+                              size={13}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between border-border border-t pt-2 text-[10px]">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Badge
+                            className={cn(
+                              "px-1.5 py-0 font-medium text-[9px] uppercase tracking-wide shrink-0",
+                              isProd &&
+                                "border-destructive/30 bg-destructive/10 text-destructive",
+                              p.environment === "Staging" &&
+                                "border-amber-500/30 bg-amber-500/10 text-amber-500",
+                              p.environment === "Local" &&
+                                "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
+                              p.environment === "Other" &&
+                                "border-border text-muted-foreground"
+                            )}
+                            variant="outline"
+                          >
+                            {p.environment}
+                          </Badge>
+                          {isSsh ? (
+                            <Badge
+                              className="border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-500/40 dark:bg-purple-500/10 dark:text-purple-300 px-1.5 py-0 font-medium text-[9px] truncate"
+                              variant="outline"
+                            >
+                              🔒 SSH
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground/70 text-[10px]">Direct</span>
+                          )}
+                        </div>
+                        <span className="text-muted-foreground/70 truncate ml-2 text-[10px]">
+                          {p.last_used_at ? "Aktif baru-baru ini" : "Belum dibuka"}
+                        </span>
+                      </div>
+                    </Card>
+                  </ContextMenuTrigger>
+
+                  <ContextMenuContent className="w-56 text-xs select-none">
+                    <ContextMenuItem
+                      className="cursor-pointer gap-2 font-medium"
+                      onClick={() => {
+                        if (onConnectHost) {
+                          onConnectHost(p);
+                        } else {
+                          onSelectHost(p);
+                        }
+                      }}
+                    >
+                      <Play className="text-primary fill-primary/20" size={13} />
+                      <span>Hubungkan Database</span>
+                      <ContextMenuShortcut>↵</ContextMenuShortcut>
+                    </ContextMenuItem>
+
+                    <ContextMenuItem
+                      className="cursor-pointer gap-2"
+                      onClick={() => onSelectHost(p)}
+                    >
+                      <SlidersHorizontal className="text-muted-foreground" size={13} />
+                      <span>Buka Form / Edit Profil</span>
+                    </ContextMenuItem>
+
+                    {onDuplicateHost && (
+                      <ContextMenuItem
+                        className="cursor-pointer gap-2"
+                        onClick={(e) => onDuplicateHost(p, e)}
+                      >
+                        <Copy className="text-muted-foreground" size={13} />
+                        <span>Duplikat / Clone Koneksi</span>
+                      </ContextMenuItem>
+                    )}
+
+                    <ContextMenuItem
+                      className="cursor-pointer gap-2"
+                      onClick={(e) => onToggleFavorite(p.id, e)}
+                    >
+                      <Star
+                        className={cn(
+                          "text-muted-foreground",
+                          p.favorite && "fill-amber-500 text-amber-500"
+                        )}
+                        size={13}
+                      />
+                      <span>
+                        {p.favorite ? "Hapus dari Favorit" : "Tambah ke Favorit"}
+                      </span>
+                    </ContextMenuItem>
+
+                    <ContextMenuSeparator />
+
+                    <ContextMenuSub>
+                      <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                        <ClipboardCopy className="text-muted-foreground" size={13} />
+                        <span>Salin Informasi Koneksi</span>
+                      </ContextMenuSubTrigger>
+                      <ContextMenuSubContent className="w-52 text-xs">
+                        <ContextMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleCopyInfo("Host", p.host)}
+                        >
+                          Salin Host ({p.host})
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleCopyInfo("Port", String(p.port))}
+                        >
+                          Salin Port ({p.port})
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          className="cursor-pointer"
+                          onClick={() => handleCopyInfo("Username", p.username)}
+                        >
+                          Salin Username ({p.username})
+                        </ContextMenuItem>
+                        {p.database && (
+                          <ContextMenuItem
+                            className="cursor-pointer"
+                            onClick={() =>
+                              handleCopyInfo("Database", p.database || "")
+                            }
+                          >
+                            Salin Database ({p.database})
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          className="cursor-pointer"
+                          onClick={() =>
+                            handleCopyInfo(
+                              "MySQL Connection URI",
+                              `mysql://${p.username}@${p.host}:${p.port}/${p.database || ""}`
+                            )
+                          }
+                        >
+                          Salin MySQL URI
+                        </ContextMenuItem>
+                        {isSsh && p.ssh?.host && (
+                          <ContextMenuItem
+                            className="cursor-pointer text-purple-700 dark:text-purple-400"
+                            onClick={() =>
+                              handleCopyInfo(
+                                "Perintah SSH Tunnel",
+                                `ssh -L ${p.port}:${p.host}:${p.port} ${p.ssh?.username || "root"}@${p.ssh?.host || "localhost"} -p ${p.ssh?.port || 22} -N`
+                              )
+                            }
+                          >
+                            Salin Perintah SSH CLI
+                          </ContextMenuItem>
+                        )}
+                      </ContextMenuSubContent>
+                    </ContextMenuSub>
+
+                    <ContextMenuSeparator />
+
+                    <ContextMenuItem
+                      className="cursor-pointer gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
+                      onClick={() => onDeleteHost(p)}
+                      variant="destructive"
+                    >
+                      <Trash2 size={13} />
+                      <span>Hapus Koneksi</span>
+                      <ContextMenuShortcut>Del</ContextMenuShortcut>
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
           </div>

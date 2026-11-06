@@ -208,4 +208,25 @@ describe("ConnectionContext & Multi-tab Navigation", () => {
     const p2 = merged.find((p) => p.id === "p-2");
     expect(p2?.name).toBe("Brand New Laptop Host");
   });
+  it("persists savedPasswords to localStorage and restores them across instances", () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <ConnectionProvider>{children}</ConnectionProvider>
+    );
+
+    const { result, unmount } = renderHook(() => useConnection(), { wrapper });
+
+    act(() => {
+      result.current.setSavedPasswords((prev) => ({
+        ...prev,
+        "test-host-id-123": "SuperSecretPass999!",
+      }));
+    });
+
+    expect(result.current.savedPasswords["test-host-id-123"]).toBe("SuperSecretPass999!");
+    unmount();
+
+    // Re-render and verify restored
+    const { result: reloaded } = renderHook(() => useConnection(), { wrapper });
+    expect(reloaded.current.savedPasswords["test-host-id-123"]).toBe("SuperSecretPass999!");
+  });
 });

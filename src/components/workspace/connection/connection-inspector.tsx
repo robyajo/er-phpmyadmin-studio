@@ -37,6 +37,7 @@ interface ConnectionInspectorProps {
   isTesting: boolean;
   onClose: () => void;
   onConnect: () => void;
+  onDuplicate?: () => void;
   onInspectSshKey: () => void;
   onSaveProfile: () => void;
   onTestConnection: () => void;
@@ -59,6 +60,7 @@ export function ConnectionInspector({
   isTesting,
   onClose,
   onConnect,
+  onDuplicate,
   onInspectSshKey,
   onSaveProfile,
   onTestConnection,
@@ -139,6 +141,16 @@ export function ConnectionInspector({
             >
               {editForm.environment}
             </Badge>
+          )}
+          {!isCreatingNew && onDuplicate && (
+            <button
+              className="cursor-pointer rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-primary"
+              onClick={onDuplicate}
+              title="Duplikat / Klon Profil Ini"
+              type="button"
+            >
+              <Copy size={14} />
+            </button>
           )}
           <button
             className="cursor-pointer rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"

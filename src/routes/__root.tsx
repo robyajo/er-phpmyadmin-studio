@@ -2,8 +2,10 @@ import { createRootRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type React from "react";
 import { Activity, useEffect, useMemo, useRef, useState } from "react";
+import { Download, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { APP_VERSION } from "@/components/app-logo";
 import { AuthGate } from "@/components/auth/auth-gate";
 import { CloudSyncModal } from "@/components/workspace/modals/cloud-sync-modal";
 import { WorkspaceHeader } from "@/components/workspace/workspace-header";
@@ -21,12 +23,18 @@ import {
   useSettings,
 } from "@/context/settings-context";
 import BaseLayout from "@/layouts/base-layout";
+import {
+  checkForAppUpdates,
+  checkFirstLaunchAfterUpdate,
+  type UpdateCheckResult,
+} from "@/services/auto-update";
 
 function AppShell() {
   const navigate = useNavigate();
   const {
     activeTabId,
     activeTabs,
+    addTab,
     closeTab,
     isSidebarCollapsed,
     mergeProfiles,
@@ -50,12 +58,56 @@ function AppShell() {
 
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
   const [isLocalBypassed, setIsLocalBypassed] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState<UpdateCheckResult | null>(null);
+  const [dismissedBannerVersion, setDismissedBannerVersion] = useState<string | null>(null);
+
+  const openUpdatesView = () => {
+    addTab({
+      env: "Other",
+      id: "tab-updates",
+      name: "Pusat Pembaruan",
+    });
+    navigate({ to: "/updates" as any });
+  };
 
   useEffect(() => {
     if (profiles?.length) {
       setCachedProfiles(profiles);
     }
   }, [profiles, setCachedProfiles]);
+
+  // First run after update detection & auto-check updates
+  useEffect(() => {
+    checkFirstLaunchAfterUpdate(() => {
+      openUpdatesView();
+    });
+
+    const timer = setTimeout(() => {
+      checkForAppUpdates({ silent: true });
+    }, 3000);
+
+    const handleOpenChangelog = () => openUpdatesView();
+    const handleUpdateAvailable = (e: Event) => {
+      const detail = (e as CustomEvent<UpdateCheckResult>).detail;
+      if (detail?.hasUpdate) {
+        setPendingUpdate(detail);
+      }
+    };
+    const handleOpenDownloader = () => {
+      openUpdatesView();
+    };
+
+    window.addEventListener("xphpmyadmin:open_changelog", handleOpenChangelog);
+    window.addEventListener("xphpmyadmin:update_available", handleUpdateAvailable);
+    window.addEventListener("xphpmyadmin:open_downloader", handleOpenDownloader);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("xphpmyadmin:open_changelog", handleOpenChangelog);
+      window.removeEventListener("xphpmyadmin:update_available", handleUpdateAvailable);
+      window.removeEventListener("xphpmyadmin:open_downloader", handleOpenDownloader);
+    };
+  }, []);
 
   // Otomatis tarik (auto-pull) snapshot dan profil dari Cloud saat aplikasi dijalankan (mount)
   // bagi pengguna dengan paket Pro, Team, atau Business
@@ -105,6 +157,10 @@ function AppShell() {
       navigate({ to: "/" });
       return;
     }
+    if (tabId === "tab-updates") {
+      navigate({ to: "/updates" as any });
+      return;
+    }
     const tab = activeTabs.find((t) => t.id === tabId);
     if (tab?.profileId) {
       navigate({
@@ -134,8 +190,55 @@ function AppShell() {
     return <AuthGate onBypassLocal={() => setIsLocalBypassed(true)} />;
   }
 
+  const showUpdateBanner =
+    pendingUpdate?.hasUpdate &&
+    pendingUpdate.latestVersion &&
+    pendingUpdate.latestVersion !== dismissedBannerVersion;
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-background font-sans text-foreground">
+      {/* Top Banner Notice for Older Versions */}
+      {showUpdateBanner && (
+        <div className="flex items-center justify-between bg-teal-500/10 border-b border-teal-500/25 px-3 py-1.5 text-xs text-foreground select-none animate-in slide-in-from-top duration-150">
+          <div className="flex items-center gap-2 truncate">
+            <span className="flex size-2 shrink-0 rounded-full bg-teal-400 animate-ping" />
+            <span className="font-semibold text-teal-400 shrink-0">
+              Pembaruan Tersedia:
+            </span>
+            <span className="truncate text-muted-foreground">
+              Versi <b className="text-foreground">v{pendingUpdate.latestVersion}</b> telah dirilis di GitHub. Anda sedang menggunakan versi lama (v{APP_VERSION}).
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={openUpdatesView}
+              className="inline-flex items-center gap-1 rounded bg-teal-500 hover:bg-teal-600 px-2.5 py-0.5 text-[11px] font-bold text-black transition-colors cursor-pointer shadow-xs"
+            >
+              <Download size={12} />
+              <span>Buka Halaman Pembaruan & Unduh</span>
+            </button>
+            <button
+              type="button"
+              onClick={openUpdatesView}
+              className="rounded border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer hidden sm:inline-block"
+            >
+              Lihat Catatan Rilis
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setDismissedBannerVersion(pendingUpdate.latestVersion || "dismissed")
+              }
+              className="rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer"
+              title="Sembunyikan pemberitahuan"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <WorkspaceHeader
         activeTabId={activeTabId}
         activeTabs={activeTabs}
@@ -167,6 +270,7 @@ function AppShell() {
             }
           });
         }}
+        onOpenChangelog={openUpdatesView}
         onOpenCloudSync={() => setIsCloudSyncOpen(true)}
         onSearchChange={setSearchQuery}
         onSelectTab={handleSelectTab}
