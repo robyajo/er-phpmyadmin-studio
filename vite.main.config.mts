@@ -1,19 +1,24 @@
 import path from "node:path";
-import { defineConfig } from "vite";
+import { type Plugin, defineConfig } from "vite";
+
+const ignoreNativeNodeAddons = (): Plugin => ({
+  name: "ignore-native-node-addons",
+  resolveId(source) {
+    if (source.endsWith(".node")) {
+      return { id: source, external: false };
+    }
+    return null;
+  },
+  load(id) {
+    if (id.endsWith(".node")) {
+      return "export default {}; module.exports = {};";
+    }
+    return null;
+  },
+});
 
 export default defineConfig({
-  build: {
-    rollupOptions: {
-      external: [
-        "ssh2",
-        /^ssh2\/.*/,
-        "cpu-features",
-        /^cpu-features\/.*/,
-        "mysql2",
-        /^mysql2\/.*/,
-      ],
-    },
-  },
+  plugins: [ignoreNativeNodeAddons()],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
