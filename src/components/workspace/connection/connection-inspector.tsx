@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ export function ConnectionInspector({
   showPassword,
   showSshPassword,
 }: ConnectionInspectorProps) {
+  const { t } = useTranslation();
   const sshKeyFileInputRef = useRef<HTMLInputElement>(null);
   const [showSshPassphrase, setShowSshPassphrase] = useState(false);
 
@@ -118,18 +120,18 @@ export function ConnectionInspector({
           </div>
           <h3 className="font-semibold text-foreground text-xs uppercase tracking-wider truncate">
             {isCreatingNew
-              ? editForm.method === "ssh"
-                ? "Buat SSH Tunnel Baru"
-                : "Buat Koneksi Baru"
-              : editForm.method === "ssh"
-                ? "SSH Tunnel Details"
-                : "Host Details"}
+              ? (editForm.method === "ssh"
+                  ? t("inspector.newSshTitle", "Buat SSH Tunnel Baru")
+                  : t("inspector.newDirectTitle", "Buat Koneksi Baru"))
+              : (editForm.method === "ssh"
+                  ? t("inspector.sshDetailsTitle", "SSH Tunnel Details")
+                  : t("inspector.hostDetailsTitle", "Host Details"))}
           </h3>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {isCreatingNew ? (
             <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-500 text-[9px] uppercase tracking-wider px-1.5 py-0 font-medium">
-              Draft Baru
+              {t("inspector.newDraftBadge", "Draft Baru")}
             </Badge>
           ) : (
             <Badge
@@ -146,7 +148,7 @@ export function ConnectionInspector({
             <button
               className="cursor-pointer rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-primary"
               onClick={onDuplicate}
-              title="Duplikat / Klon Profil Ini"
+              title={t("grid.duplicateHost", "Duplikat / Klon Profil Ini")}
               type="button"
             >
               <Copy size={14} />
@@ -155,7 +157,7 @@ export function ConnectionInspector({
           <button
             className="cursor-pointer rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
             onClick={onClose}
-            title="Tutup Panel Inspector"
+            title={t("grid.closeInspector", "Tutup Panel Inspector")}
             type="button"
           >
             <PanelRightClose size={15} />
@@ -199,7 +201,7 @@ export function ConnectionInspector({
                 type="button"
               >
                 <Database size={13} />
-                <span>Langsung (Direct)</span>
+                <span>{t("inspector.direct", "Langsung (Direct)")}</span>
               </button>
               <button
                 className={cn(
@@ -226,7 +228,7 @@ export function ConnectionInspector({
                 type="button"
               >
                 <Terminal size={13} />
-                <span>SSH Tunnel (VPS)</span>
+                <span>{t("inspector.sshTunnel", "SSH Tunnel (VPS)")}</span>
               </button>
             </div>
           </div>
@@ -325,7 +327,7 @@ export function ConnectionInspector({
           </div>
 
           <div>
-            <Label className="text-[10px] text-muted-foreground">Port Database</Label>
+            <Label className="text-[10px] text-muted-foreground">{t("inspector.dbPort", "Port Database")}</Label>
             <Input
               className="mt-1 h-8 border-border bg-background px-2.5 font-mono text-xs leading-normal"
               onChange={(e) =>
@@ -355,7 +357,7 @@ export function ConnectionInspector({
 
           <div>
             <Label className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>Password MySQL</span>
+              <span>{t("inspector.dbPassword", "Password MySQL")}</span>
               {editForm.has_saved_password && passwordAction === "keep" && (
                 <span className="font-medium text-[9px] text-emerald-500">
                   Tersimpan di Vault
@@ -862,7 +864,7 @@ export function ConnectionInspector({
               className={cn("mr-1", isTesting && "animate-spin")}
               size={12}
             />
-            <span className="truncate">{isTesting ? "Menguji..." : "Tes"}</span>
+            <span className="truncate">{isTesting ? t("inspector.testing", "Menguji...") : t("inspector.testConnection", "Tes")}</span>
           </Button>
           <Button
             className="h-8 bg-primary font-semibold text-primary-foreground text-xs hover:bg-primary/90 cursor-pointer"
@@ -870,7 +872,7 @@ export function ConnectionInspector({
             size="sm"
           >
             <Check className="mr-1" size={12} />
-            <span className="truncate">{isCreatingNew ? "Simpan ke Daftar" : "Simpan"}</span>
+            <span className="truncate">{isCreatingNew ? t("inspector.saveProfile", "Simpan ke Daftar") : t("common.save", "Simpan")}</span>
           </Button>
         </div>
         <Button
@@ -879,7 +881,7 @@ export function ConnectionInspector({
           size="sm"
         >
           <Zap className="fill-current" size={13} />
-          <span>Hubungkan ke Database</span>
+          <span>{t("inspector.connect", "Hubungkan ke Database")}</span>
           <kbd className="ml-1 hidden rounded bg-primary-foreground/15 px-1 py-0.2 font-mono text-[9px] text-primary-foreground sm:inline">
             ⌘↵
           </kbd>

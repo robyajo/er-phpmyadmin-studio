@@ -6,12 +6,12 @@
     "name": "xphpMyAdmin — Pengelola Koneksi Database Remote"
   },
   "title": {
-    "id": "Fitur Duplikasi Koneksi, Kemudahan Salin Pesan, & Optimasi Sistem",
-    "en": "Connection Duplication Feature, Streamlined Message Copying, & System Boost"
+    "id": "Fitur Duplikasi Koneksi, Dukungan Dwibahasa Lengkap, & Optimasi Mac",
+    "en": "Connection Duplication, Full Bilingual Support, & Mac Platform Optimization"
   },
   "body": {
-    "id": "Pembaruan ini menghadirkan fitur klon koneksi host untuk memudahkan pembuatan profil server baru tanpa mengisi dari awal, dukungan penyalinan pesan sistem dan menu klik kanan desktop, serta peningkatan efisiensi distribusi aplikasi multi-platform.",
-    "en": "This update introduces a connection cloning feature to quickly create new server profiles without reconfiguring from scratch, brings full text copying support and native desktop right-click menus, and optimizes multi-platform distribution efficiency."
+    "id": "Pembaruan ini menghadirkan fitur klon koneksi host untuk memudahkan pembuatan profil server baru tanpa mengisi dari awal, dukungan dwibahasa menyeluruh (Indonesia & Inggris) di seluruh antarmuka aplikasi, tampilan ikon resmi di macOS Dock, penyalinan pesan sistem dan menu desktop, serta penyempurnaan pembuatan paket distribusi macOS Apple Silicon.",
+    "en": "This update introduces a connection cloning feature to quickly create new server profiles without reconfiguring from scratch, comprehensive bilingual support (Indonesian & English) across all application views, official icon display in macOS Dock, native desktop right-click menus, and streamlined macOS Apple Silicon packaging."
   },
   "items": [
     {
@@ -48,6 +48,21 @@
       "type": "fix",
       "id": "Penegakan Integritas Audit dan Pengujian Sistem: Memperbaiki kelengkapan rincian pencatatan riwayat aksi pada modul sinkronisasi brankas data, memastikan seluruh rangkaian pengujian sistem lolos dengan status sempurna dan bebas galat.",
       "en": "Audit Integrity Enforcement & System Test Stabilization: Fixed action record details in the data vault synchronization module, ensuring all automated system test suites pass with complete reliability."
+    },
+    {
+      "type": "improvement",
+      "id": "Dukungan Bahasa Menyeluruh Tanpa Hambatan: Memperbaiki keterbatasan pergantian bahasa sebelumnya dengan mengintegrasikan kamus dwibahasa (Indonesia & Inggris) penuh ke seluruh komponen aplikasi—mulai dari bilah tab navigasi, bilah samping koneksi, daftar & menu kartu server, formulir pengaturan host & SSH, menu bar desktop, tab pengelola database, hingga pusat pembaruan.",
+      "en": "Comprehensive Seamless Bilingual Support: Resolved partial language switching limitations by integrating complete bilingual (Indonesian & English) dictionaries across all application components—including navigation header tabs, connection sidebar, host cards & context menus, host & SSH configuration forms, application menubar, database workspace tabs, and the updates center."
+    },
+    {
+      "type": "fix",
+      "id": "Tampilan Ikon Resmi Aplikasi di macOS Dock: Memperbaiki tampilan ikon aplikasi pada sistem macOS agar senantiasa menampilkan logo resmi di Dock secara tajam dan konsisten baik dalam mode pengembangan maupun saat terpasang di sistem, menggantikan ikon bawaan.",
+      "en": "Official Application Icon in macOS Dock: Enhanced macOS integration to consistently display the crisp, official brand icon in the system Dock during both local runtime and production installations, replacing generic system fallbacks."
+    },
+    {
+      "type": "improvement",
+      "id": "Penyempurnaan Jalur Kompilasi & Pemasangan Mac Apple Chip: Mengoptimalkan pembuatan paket installer DMG dan berkas aplikasi mandiri untuk Mac berbasis chip Apple Silicon (M1/M2/M3/M4) tanpa ketergantungan unduhan jaringan eksternal yang lambat, serta mendukung pemasangan langsung ke sistem.",
+      "en": "Apple Silicon Mac Installer & Compilation Optimization: Streamlined DMG installer and standalone application packaging for Apple Silicon Macs (M1/M2/M3/M4) without slow external network dependencies, enabling fast local packaging and seamless system installation."
     }
   ]
 }

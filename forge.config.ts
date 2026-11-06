@@ -1,4 +1,18 @@
+import fs from "node:fs";
 import path from "node:path";
+
+const getLocalElectronZipDir = () => {
+  const cacheBase = path.join(process.env.HOME || "", "Library/Caches/electron");
+  if (fs.existsSync(cacheBase)) {
+    for (const entry of fs.readdirSync(cacheBase)) {
+      const candidate = path.join(cacheBase, entry);
+      if (fs.existsSync(path.join(candidate, "electron-v44.10.2-darwin-arm64.zip"))) {
+        return candidate;
+      }
+    }
+  }
+  return undefined;
+};
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerDMG } from "@electron-forge/maker-dmg";
@@ -10,6 +24,9 @@ import { VitePlugin } from "@electron-forge/plugin-vite";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 
 const config: ForgeConfig = {
+  rebuildConfig: {
+    onlyModules: [],
+  },
   makers: [
     new MakerDMG(
       {
@@ -47,6 +64,7 @@ const config: ForgeConfig = {
   ],
   packagerConfig: {
     asar: true,
+    electronZipDir: getLocalElectronZipDir(),
     executableName: "xphpmyadmin-desktop",
     extraResource: [path.resolve(__dirname, "assets")],
     icon: path.resolve(__dirname, "assets/icon"),

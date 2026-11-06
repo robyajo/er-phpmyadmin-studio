@@ -37,13 +37,28 @@ type DownloadStatus = "idle" | "downloading" | "complete" | "error";
 
 export function UpdatesView() {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { setActiveTabId } = useConnection();
 
   const [selectedVersion, setSelectedVersion] = useState<string>(APP_VERSION);
   const [lang, setLang] = useState<"id" | "en">(
     i18n.language?.startsWith("en") ? "en" : "id"
   );
+
+  useEffect(() => {
+    setLang(i18n.language?.startsWith("en") ? "en" : "id");
+  }, [i18n.language]);
+
+  const toggleChangelogLang = () => {
+    const nextLang = lang === "id" ? "en" : "id";
+    setLang(nextLang);
+    if (typeof i18n?.changeLanguage === "function") {
+      i18n.changeLanguage(nextLang);
+    }
+    try {
+      localStorage.setItem("lang", nextLang);
+    } catch {}
+  };
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [filterType, setFilterType] = useState<"all" | "new" | "improvement" | "fix">("all");
   const [searchFilter, setSearchFilter] = useState("");
@@ -221,7 +236,7 @@ export function UpdatesView() {
             type="button"
             onClick={handleBackToHome}
             className="flex size-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-            title="Kembali ke Ruang Kerja Utama (Home)"
+            title={t("updates.backToHome", "Kembali ke Ruang Kerja Utama (Home)")}
           >
             <ArrowLeft size={16} />
           </button>
@@ -229,19 +244,19 @@ export function UpdatesView() {
             <AppIcon size={30} withBackground />
             <div>
               <h1 className="font-bold text-sm tracking-tight text-foreground flex items-center gap-2">
-                <span>Pusat Pembaruan & Catatan Rilis</span>
+                <span>{t("updates.title", "Pusat Pembaruan & Catatan Rilis")}</span>
                 <span className="rounded bg-teal-500/15 border border-teal-500/30 px-2 py-0.5 font-mono text-[10px] font-semibold text-teal-400">
-                  v{APP_VERSION} (Terpasang)
+                  {`v${APP_VERSION} (${t("updates.installed", "Terpasang")})`}
                 </span>
                 {hasNewerVersion && (
                   <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 flex items-center gap-1 animate-pulse">
                     <Sparkles size={11} />
-                    v{latestVersion} Tersedia
+                    {`v${latestVersion} ${t("updates.available", "Tersedia")}`}
                   </span>
                 )}
               </h1>
               <p className="text-[11px] text-muted-foreground">
-                Pantau pembaruan sistem, unduh binary resmi GitHub, dan eksplorasi log perubahan
+                {t("updates.subtitle", "Pantau pembaruan sistem, unduh binary resmi GitHub, dan eksplorasi log perubahan")}
               </p>
             </div>
           </div>
@@ -251,9 +266,9 @@ export function UpdatesView() {
           {/* Language Switcher */}
           <button
             type="button"
-            onClick={() => setLang((prev) => (prev === "id" ? "en" : "id"))}
+            onClick={toggleChangelogLang}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-            title="Ganti Bahasa Tampilan Catatan Rilis (ID / EN)"
+            title={t("updates.switchLanguage", "Ganti Bahasa Tampilan Catatan Rilis (ID / EN)")}
           >
             <Globe size={13} className="text-teal-400" />
             <span className="font-mono font-bold uppercase">{lang}</span>
@@ -271,7 +286,7 @@ export function UpdatesView() {
               className={cn(isCheckingUpdate && "animate-spin text-teal-400")}
             />
             <span className="hidden sm:inline">
-              {isCheckingUpdate ? "Memeriksa GitHub..." : "Periksa Pembaruan Online"}
+              {isCheckingUpdate ? t("updates.checkingOnline", "Memeriksa GitHub...") : t("updates.checkOnline", "Periksa Pembaruan Online")}
             </span>
           </button>
 
@@ -297,10 +312,10 @@ export function UpdatesView() {
         <aside className="w-64 sm:w-72 shrink-0 border-r border-border bg-muted/20 flex flex-col min-h-0">
           <div className="p-3 border-b border-border/60">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
-              Riwayat Rilis
+              {t("updates.historyTitle", "Riwayat Rilis")}
             </span>
             <div className="text-xs text-muted-foreground">
-              Total {RELEASES_DATA.length} rilis terdokumentasi
+              {t("updates.historySubtitle", { count: RELEASES_DATA.length, defaultValue: `Total ${RELEASES_DATA.length} rilis terdokumentasi` })}
             </div>
           </div>
 
@@ -405,7 +420,7 @@ export function UpdatesView() {
                     className="inline-flex items-center gap-1.5 rounded-xl bg-teal-500 hover:bg-teal-600 px-4 py-2 text-xs font-bold text-black transition-all cursor-pointer shadow-sm hover:shadow-[0_0_14px_#2dd4bf]/40"
                   >
                     <ArrowDownToLine size={14} />
-                    <span>{hasNewerVersion ? "Mulai Unduh Pembaruan" : "Unduh Ulang Paket"}</span>
+                    <span>{hasNewerVersion ? t("updates.startDownload", "Mulai Unduh Pembaruan") : t("updates.redownload", "Unduh Ulang Paket")}</span>
                   </button>
                 )}
 
@@ -416,7 +431,7 @@ export function UpdatesView() {
                     className="inline-flex items-center gap-1.5 rounded-xl bg-teal-500/60 px-4 py-2 text-xs font-bold text-black transition-all cursor-not-allowed opacity-90"
                   >
                     <RefreshCw size={14} className="animate-spin" />
-                    <span>Mengunduh... ({percent}%)</span>
+                    <span>{t("updates.downloading", { percent, defaultValue: `Mengunduh... (${percent}%)` })}</span>
                   </button>
                 )}
 
@@ -427,7 +442,7 @@ export function UpdatesView() {
                     className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-xs font-bold text-black transition-all cursor-pointer shadow-sm hover:shadow-[0_0_14px_#10b981]/40"
                   >
                     <Play size={13} fill="currentColor" />
-                    <span>Pasang Sekarang (Buka Installer)</span>
+                    <span>{t("updates.installNow", "Pasang Sekarang (Buka Installer)")}</span>
                   </button>
                 )}
 
@@ -441,7 +456,7 @@ export function UpdatesView() {
                   className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3.5 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                 >
                   <ExternalLink size={13} />
-                  <span>Unduh via Browser</span>
+                  <span>{t("updates.downloadBrowser", "Unduh via Browser")}</span>
                 </button>
               </div>
             </div>
@@ -548,7 +563,7 @@ export function UpdatesView() {
                       : "bg-muted text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  Semua ({activeRelease.items?.length || 0})
+                  {t("updates.filterAll", "Semua")} ({activeRelease.items?.length || 0})
                 </button>
                 <button
                   type="button"
@@ -561,7 +576,7 @@ export function UpdatesView() {
                   )}
                 >
                   <Sparkles size={12} />
-                  Fitur Baru (
+                  {t("updates.filterNew", "Fitur Baru")} (
                   {activeRelease.items?.filter((i) => i.type === "new").length || 0}
                   )
                 </button>
@@ -576,7 +591,7 @@ export function UpdatesView() {
                   )}
                 >
                   <Zap size={12} />
-                  Peningkatan (
+                  {t("updates.filterImprovement", "Peningkatan")} (
                   {activeRelease.items?.filter((i) => i.type === "improvement").length || 0}
                   )
                 </button>
@@ -591,7 +606,7 @@ export function UpdatesView() {
                   )}
                 >
                   <Wrench size={12} />
-                  Perbaikan (
+                  {t("updates.filterFix", "Perbaikan")} (
                   {activeRelease.items?.filter((i) => i.type === "fix").length || 0}
                   )
                 </button>
@@ -605,7 +620,7 @@ export function UpdatesView() {
                 />
                 <input
                   type="text"
-                  placeholder="Cari dalam catatan rilis..."
+                  placeholder={t("updates.searchPlaceholder", { version: activeRelease.version, defaultValue: "Cari dalam catatan rilis..." })}
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
                   className="h-8 w-full sm:w-56 rounded-lg border border-border bg-background pr-2.5 pl-8 text-xs placeholder:text-muted-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
@@ -630,19 +645,19 @@ export function UpdatesView() {
                       {isNew && (
                         <span className="inline-flex items-center gap-1 rounded bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-400 uppercase">
                           <Sparkles size={11} />
-                          Fitur Baru
+                          {t("updates.typeNew", "Fitur Baru")}
                         </span>
                       )}
                       {isImprovement && (
                         <span className="inline-flex items-center gap-1 rounded bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 font-mono text-[10px] font-semibold text-sky-400 uppercase">
                           <Zap size={11} />
-                          Peningkatan
+                          {t("updates.typeImprovement", "Peningkatan")}
                         </span>
                       )}
                       {isFix && (
                         <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 font-mono text-[10px] font-semibold text-amber-400 uppercase">
                           <Wrench size={11} />
-                          Perbaikan
+                          {t("updates.typeFix", "Perbaikan")}
                         </span>
                       )}
                     </div>
@@ -655,7 +670,7 @@ export function UpdatesView() {
 
               {filteredItems.length === 0 && (
                 <div className="rounded-xl border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
-                  Tidak ada catatan rilis yang cocok dengan filter pencarian.
+                  {t("updates.noChangesFound", "Tidak ada catatan perubahan yang cocok")}
                 </div>
               )}
             </div>

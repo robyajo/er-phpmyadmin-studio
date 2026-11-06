@@ -8,6 +8,7 @@ import {
   Table as TableIcon,
   X,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import type { Profile } from "@/types/connection";
 import { cn } from "@/utils/tailwind";
@@ -56,6 +57,8 @@ export function ExplorerSidebar({
   setTableSearch,
   tableSearch,
 }: ExplorerSidebarProps) {
+  const { t } = useTranslation();
+
   if (!isOpen) {
     return null;
   }
@@ -81,7 +84,7 @@ export function ExplorerSidebar({
           <button
             className="cursor-pointer rounded p-1 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-primary"
             onClick={onRefreshDatabases}
-            title="Muat Ulang Database"
+            title={t("explorer.refreshDatabases", "Muat Ulang Database")}
             type="button"
           >
             <RefreshCw size={11} />
@@ -89,7 +92,7 @@ export function ExplorerSidebar({
           <button
             className="cursor-pointer rounded p-1 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
             onClick={onClose}
-            title="Tutup Explorer"
+            title={t("explorer.closeExplorer", "Tutup Explorer")}
             type="button"
           >
             <X size={11} />
@@ -101,12 +104,12 @@ export function ExplorerSidebar({
       <div className="flex items-center justify-between border-border border-b bg-card px-3 py-1.5">
         <div className="flex items-center gap-1.5 font-bold text-[10px] text-muted-foreground uppercase tracking-wider">
           <Database className="text-emerald-500" size={12} />
-          <span>Databases ({availableDatabases.length})</span>
+          <span>{t("explorer.databases", "Databases")} ({availableDatabases.length})</span>
         </div>
         <button
           className="cursor-pointer rounded p-0.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-primary"
           onClick={onOpenCreateDbModal}
-          title="Buat Database Baru"
+          title={t("explorer.createDatabase", "Buat Database Baru")}
           type="button"
         >
           <Plus size={11} />
@@ -123,7 +126,7 @@ export function ExplorerSidebar({
           <Input
             className="h-6.5 rounded border-border bg-muted/40 pr-2 pl-7 text-[11px] text-foreground placeholder:text-muted-foreground/70"
             onChange={(e) => setDatabaseSearch(e.target.value)}
-            placeholder={`Cari database (${availableDatabases.length})...`}
+            placeholder={`${t("explorer.searchDatabases", "Cari database...")} (${availableDatabases.length})`}
             value={databaseSearch}
           />
         </div>
@@ -165,7 +168,7 @@ export function ExplorerSidebar({
         })}
         {filteredDatabases.length === 0 && (
           <div className="p-3 text-center text-[11px] text-muted-foreground/70 italic">
-            Database tidak ditemukan
+            {t("explorer.noDatabases", "Database tidak ditemukan")}
           </div>
         )}
       </div>
@@ -175,7 +178,7 @@ export function ExplorerSidebar({
         <div className="flex items-center gap-1.5 truncate font-bold text-[10px] text-muted-foreground uppercase tracking-wider">
           <TableIcon className="text-primary" size={12} />
           <span className="truncate">
-            Tabel:{" "}
+            {t("explorer.tables", "Tabel")}:{" "}
             <span className="font-mono text-emerald-500 lowercase">
               {currentSelectedDatabase || "Pilih db"}
             </span>
@@ -196,7 +199,9 @@ export function ExplorerSidebar({
           <Input
             className="h-6.5 rounded border-border bg-muted/40 pr-2 pl-7 text-[11px] text-foreground placeholder:text-muted-foreground/70"
             onChange={(e) => setTableSearch(e.target.value)}
-            placeholder={`Cari tabel di ${currentSelectedDatabase || "database"}...`}
+            placeholder={t("explorer.searchTables", "Cari tabel di {{db}}...", {
+              db: currentSelectedDatabase || "database",
+            })}
             value={tableSearch}
           />
         </div>
@@ -207,7 +212,7 @@ export function ExplorerSidebar({
         {isLoadingTables ? (
           <div className="flex items-center justify-center gap-2 p-6 text-primary text-xs">
             <RefreshCw className="animate-spin" size={13} />
-            <span>Memuat tabel...</span>
+            <span>{t("common.loading", "Memuat tabel...")}</span>
           </div>
         ) : (
           <>
@@ -246,7 +251,7 @@ export function ExplorerSidebar({
             })}
             {filteredDisplayTables.length === 0 && (
               <div className="p-4 text-center text-muted-foreground/70 text-xs italic">
-                Belum ada tabel pada database ini.
+                {t("explorer.noTables", "Belum ada tabel pada database ini.")}
               </div>
             )}
           </>
@@ -260,7 +265,7 @@ export function ExplorerSidebar({
             <button
               className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors shrink-0"
               onClick={onOpenSettings}
-              title="Pengaturan Aplikasi"
+              title={t("sidebar.settings", "Pengaturan")}
               type="button"
             >
               <Settings size={12} />
@@ -278,7 +283,7 @@ export function ExplorerSidebar({
           onClick={onSwitchToHub}
           type="button"
         >
-          Ganti Host
+          {t("common.refresh", "Ganti Host")}
         </button>
       </div>
     </aside>

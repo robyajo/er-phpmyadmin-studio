@@ -107,7 +107,11 @@ export function WorkspaceHeader({
                 style={{ backgroundColor: "currentColor" }}
               />
               <span className="max-w-[75px] sm:max-w-[120px] md:max-w-[160px] truncate">
-                {tab.name}
+                {tab.id === "tab-home"
+                  ? t("header.tabHome", "Pengelola Koneksi")
+                  : tab.id === "tab-updates"
+                    ? t("header.tabUpdates", "Pusat Pembaruan")
+                    : tab.name}
               </span>
               {tab.id !== "tab-home" && (
                 <span
@@ -166,8 +170,14 @@ export function WorkspaceHeader({
                   ? t("common.syncing", "Sedang menyinkronkan...")
                   : pendingSyncCount > 0
                     ? userPlan !== "free"
-                      ? `${pendingSyncCount} aktivitas dalam proses sinkronisasi otomatis.`
-                      : `${pendingSyncCount} aktivitas belum disinkronkan (Perlu langganan). Klik untuk kelola Cloud Sync.`
+                      ? t("header.syncInProgress", {
+                          count: pendingSyncCount,
+                          defaultValue: `${pendingSyncCount} aktivitas dalam proses sinkronisasi otomatis.`,
+                        })
+                      : t("header.syncPendingFree", {
+                          count: pendingSyncCount,
+                          defaultValue: `${pendingSyncCount} aktivitas belum disinkronkan (Perlu langganan). Klik untuk kelola Cloud Sync.`,
+                        })
                     : t("header.cloudSync", "Cloud Sync & Jurnal Audit")
               }
               type="button"
@@ -237,7 +247,7 @@ export function WorkspaceHeader({
                   : "bg-muted text-muted-foreground"
               )}
               onClick={onOpenCloudSync}
-              title="Klik untuk Kelola / Upgrade Paket"
+              title={t("header.upgradePlanTooltip", "Klik untuk Kelola / Upgrade Paket")}
             >
               {userPlan}
             </span>

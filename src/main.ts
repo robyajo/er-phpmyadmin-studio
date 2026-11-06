@@ -81,12 +81,24 @@ function createWindow() {
   const preload = path.join(basePath, "preload.js");
   const candidateIconPaths = [
     path.join(process.resourcesPath, "assets/icon.png"),
+    path.join(process.resourcesPath, "assets/icon.icns"),
     path.resolve(app.getAppPath(), "assets/icon.png"),
+    path.resolve(app.getAppPath(), "assets/icon.icns"),
     path.resolve(process.cwd(), "assets/icon.png"),
+    path.resolve(process.cwd(), "assets/icon.icns"),
     path.join(__dirname, "../renderer/main_window/assets/icon.png"),
   ];
   const appIconPath = candidateIconPaths.find((p) => fs.existsSync(p));
   const appIcon = appIconPath ? nativeImage.createFromPath(appIconPath) : undefined;
+
+  // Explicitly set macOS Dock icon (crucial for dev mode & runtime dock branding)
+  if (process.platform === "darwin" && app.dock && appIcon) {
+    try {
+      app.dock.setIcon(appIcon);
+    } catch (err) {
+      console.warn("Could not set macOS dock icon:", err);
+    }
+  }
 
   mainWindow = new BrowserWindow({
     backgroundColor: "#07080a",
@@ -186,10 +198,19 @@ function checkForUpdates() {
 }
 
 async function setupORPC() {
-  const { rpcHandler } = await import("./ipc/handler");
+  const handlerModule = await import("./ipc/handler");
+  const rpcHandler =
+    handlerModule.rpcHandler ??
+    (handlerModule as unknown as { default?: { rpcHandler?: typeof handlerModule.rpcHandler } })
+      ?.default?.rpcHandler;
 
   ipcMain.on(IPC_CHANNELS.START_ORPC_SERVER, (event) => {
     const [serverPort] = event.ports;
+
+    if (!rpcHandler) {
+      console.error("Critical: rpcHandler is undefined in setupORPC!");
+      return;
+    }
 
     serverPort.start();
     rpcHandler.upgrade(serverPort);

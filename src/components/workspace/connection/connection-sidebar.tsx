@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Terminal,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import ToggleTheme from "@/components/toggle-theme";
 import { cn } from "@/utils/tailwind";
 
@@ -17,12 +18,12 @@ interface ConnectionSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { icon: Server, id: "hosts", label: "Koneksi (Hosts)" },
-  { icon: Terminal, id: "tunnels", label: "SSH Tunnels" },
-  { icon: Key, id: "keychain", label: "Keychain" },
-  { icon: FileCode2, id: "snippets", label: "SQL Snippets" },
-  { icon: ShieldCheck, id: "known", label: "Known Hosts" },
-  { icon: Clock, id: "backup", label: "Backup & Logs" },
+  { icon: Server, id: "hosts", key: "hosts", fallback: "Koneksi (Hosts)" },
+  { icon: Terminal, id: "tunnels", key: "tunnels", fallback: "SSH Tunnels" },
+  { icon: Key, id: "keychain", key: "keychain", fallback: "Keychain" },
+  { icon: FileCode2, id: "snippets", key: "snippets", fallback: "SQL Snippets" },
+  { icon: ShieldCheck, id: "known", key: "known", fallback: "Known Hosts" },
+  { icon: Clock, id: "backup", key: "backup", fallback: "Backup & Logs" },
 ];
 
 export function ConnectionSidebar({
@@ -30,6 +31,7 @@ export function ConnectionSidebar({
   isSidebarCollapsed,
   onSelectSection,
 }: ConnectionSidebarProps) {
+  const { t } = useTranslation();
   const isSettingsActive = activeSection === "settings";
 
   return (
@@ -43,6 +45,7 @@ export function ConnectionSidebar({
         {NAV_ITEMS.map((nav) => {
           const Icon = nav.icon;
           const isActive = activeSection === nav.id;
+          const label = t(`sidebar.${nav.key}`, nav.fallback);
           return (
             <button
               className={cn(
@@ -53,7 +56,7 @@ export function ConnectionSidebar({
               )}
               key={nav.id}
               onClick={() => onSelectSection?.(nav.id)}
-              title={nav.label}
+              title={label}
               type="button"
             >
               <Icon
@@ -68,7 +71,7 @@ export function ConnectionSidebar({
                 size={14}
               />
               {!isSidebarCollapsed && (
-                <span className="truncate">{nav.label}</span>
+                <span className="truncate">{label}</span>
               )}
             </button>
           );
@@ -91,7 +94,7 @@ export function ConnectionSidebar({
               : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
           )}
           onClick={() => onSelectSection?.("settings")}
-          title="Pengaturan"
+          title={t("sidebar.settings", "Pengaturan")}
           type="button"
         >
           <Settings
@@ -101,7 +104,7 @@ export function ConnectionSidebar({
             )}
             size={14}
           />
-          {!isSidebarCollapsed && <span>Pengaturan</span>}
+          {!isSidebarCollapsed && <span>{t("sidebar.settings", "Pengaturan")}</span>}
         </button>
       </div>
     </aside>

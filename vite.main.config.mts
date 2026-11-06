@@ -11,7 +11,7 @@ const ignoreNativeNodeAddons = (): Plugin => ({
   },
   load(id) {
     if (id.endsWith(".node")) {
-      return "export default {}; module.exports = {};";
+      return "export default {}; export const getCPUInfo = () => ({});";
     }
     return null;
   },

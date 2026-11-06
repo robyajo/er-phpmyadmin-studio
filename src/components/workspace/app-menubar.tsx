@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Menubar,
   MenubarContent,
@@ -73,6 +74,7 @@ interface AppMenubarProps {
 }
 
 export function AppMenubar({ className }: AppMenubarProps) {
+  const { t } = useTranslation();
   const connection = useSafeConnection();
   const cloudSync = useSafeCloudSync();
   const settings = useSafeSettings();
@@ -91,22 +93,22 @@ export function AppMenubar({ className }: AppMenubarProps) {
 
   const handleManualSync = () => {
     if (!cloudSync) return;
-    toast.info("Menjalankan sinkronisasi cloud...");
+    toast.info(t("common.syncing", "Menjalankan sinkronisasi cloud..."));
     cloudSync
       .syncNow(connection?.profiles || [])
       .then((res) => {
         if (res.success) {
-          toast.success("Sinkronisasi Cloud Berhasil!", {
+          toast.success(t("cloudSync.saveSettings", "Sinkronisasi Cloud Berhasil!"), {
             description: res.message || `${res.syncedItems} item disinkronkan.`,
           });
         } else {
-          toast.error("Gagal sinkronisasi", {
+          toast.error(t("common.error", "Gagal sinkronisasi"), {
             description: res.error || "Terjadi kesalahan saat sinkronisasi.",
           });
         }
       })
       .catch((err) => {
-        toast.error("Gagal sinkronisasi", {
+        toast.error(t("common.error", "Gagal sinkronisasi"), {
           description: err instanceof Error ? err.message : String(err),
         });
       });
@@ -115,7 +117,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
   const handleCloseActiveTab = () => {
     if (connection && connection.activeTabId && connection.activeTabId !== "tab-home") {
       connection.closeTab(connection.activeTabId);
-      toast.info("Tab koneksi ditutup");
+      toast.info(t("header.closeTab", "Tab koneksi ditutup"));
     } else {
       toast.info("Tab utama (Home) tidak dapat ditutup");
     }
@@ -123,7 +125,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
 
   const handleCopy = () => {
     document.execCommand("copy");
-    toast.success("Teks disalin ke clipboard");
+    toast.success(t("common.copied", "Teks disalin ke clipboard"));
   };
 
   const handleCut = () => {
@@ -175,14 +177,14 @@ export function AppMenubar({ className }: AppMenubarProps) {
     <>
       <Menubar
         className={cn(
-          "h-7 border-0 bg-transparent p-0 gap-0.5 text-xs select-none",
+          "h-7 border-0 bg-transparent px-1 py-0 shadow-none select-none gap-0.5",
           className
         )}
       >
         {/* MENU: FILE / BERKAS */}
         <MenubarMenu>
           <MenubarTrigger className="h-6 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 data-[state=open]:bg-muted data-[state=open]:text-foreground font-medium rounded cursor-pointer transition-colors">
-            Berkas
+            {t("menubar.file", "Berkas")}
           </MenubarTrigger>
           <MenubarContent className="min-w-56 text-xs" align="start">
             <MenubarItem
@@ -190,7 +192,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleNewConnection}
             >
               <Database size={13} className="text-primary" />
-              <span>Koneksi Database Baru...</span>
+              <span>{t("menubar.newConnection", "Koneksi Database Baru...")}</span>
               <MenubarShortcut>Ctrl+N</MenubarShortcut>
             </MenubarItem>
 
@@ -199,7 +201,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleNewSshTunnel}
             >
               <Terminal size={13} className="text-purple-400" />
-              <span>SSH Tunnel Baru...</span>
+              <span>{t("menubar.newSshTunnel", "SSH Tunnel Baru...")}</span>
               <MenubarShortcut>Ctrl+Shift+N</MenubarShortcut>
             </MenubarItem>
 
@@ -210,7 +212,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleManualSync}
             >
               <Cloud size={13} className="text-sky-400" />
-              <span>Sinkronisasi Cloud Sekarang</span>
+              <span>{t("menubar.syncCloudNow", "Sinkronisasi Cloud Sekarang")}</span>
               <MenubarShortcut>Ctrl+S</MenubarShortcut>
             </MenubarItem>
 
@@ -219,7 +221,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={() => settings?.openSettings()}
             >
               <Settings size={13} className="text-muted-foreground" />
-              <span>Pengaturan Aplikasi...</span>
+              <span>{t("menubar.appSettings", "Pengaturan Aplikasi...")}</span>
               <MenubarShortcut>Ctrl+,</MenubarShortcut>
             </MenubarItem>
 
@@ -230,7 +232,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleCloseActiveTab}
             >
               <X size={13} className="text-muted-foreground" />
-              <span>Tutup Tab Aktif</span>
+              <span>{t("menubar.closeTab", "Tutup Tab Aktif")}</span>
               <MenubarShortcut>Ctrl+W</MenubarShortcut>
             </MenubarItem>
 
@@ -242,7 +244,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               variant="destructive"
             >
               <Power size={13} />
-              <span>Keluar Aplikasi</span>
+              <span>{t("menubar.exitApp", "Keluar Aplikasi")}</span>
               <MenubarShortcut>Alt+F4</MenubarShortcut>
             </MenubarItem>
           </MenubarContent>
@@ -251,24 +253,24 @@ export function AppMenubar({ className }: AppMenubarProps) {
         {/* MENU: EDIT / SUNTING */}
         <MenubarMenu>
           <MenubarTrigger className="h-6 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 data-[state=open]:bg-muted data-[state=open]:text-foreground font-medium rounded cursor-pointer transition-colors">
-            Sunting
+            {t("menubar.edit", "Sunting")}
           </MenubarTrigger>
           <MenubarContent className="min-w-52 text-xs" align="start">
             <MenubarItem className="cursor-pointer gap-2" onClick={handleCut}>
               <Scissors size={13} className="text-muted-foreground" />
-              <span>Potong</span>
+              <span>{t("menubar.cut", "Potong")}</span>
               <MenubarShortcut>Ctrl+X</MenubarShortcut>
             </MenubarItem>
 
             <MenubarItem className="cursor-pointer gap-2" onClick={handleCopy}>
               <Copy size={13} className="text-muted-foreground" />
-              <span>Salin</span>
+              <span>{t("menubar.copy", "Salin")}</span>
               <MenubarShortcut>Ctrl+C</MenubarShortcut>
             </MenubarItem>
 
             <MenubarItem className="cursor-pointer gap-2" onClick={handlePaste}>
               <ClipboardPaste size={13} className="text-muted-foreground" />
-              <span>Tempel</span>
+              <span>{t("menubar.paste", "Tempel")}</span>
               <MenubarShortcut>Ctrl+V</MenubarShortcut>
             </MenubarItem>
 
@@ -279,7 +281,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleSelectAll}
             >
               <CheckSquare size={13} className="text-muted-foreground" />
-              <span>Pilih Semua Teks</span>
+              <span>{t("menubar.selectAll", "Pilih Semua Teks")}</span>
               <MenubarShortcut>Ctrl+A</MenubarShortcut>
             </MenubarItem>
 
@@ -290,7 +292,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleFocusSearch}
             >
               <Search size={13} className="text-teal-400" />
-              <span>Cari Koneksi...</span>
+              <span>{t("menubar.searchConnections", "Cari Koneksi...")}</span>
               <MenubarShortcut>Ctrl+F</MenubarShortcut>
             </MenubarItem>
           </MenubarContent>
@@ -299,7 +301,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
         {/* MENU: KONEKSI */}
         <MenubarMenu>
           <MenubarTrigger className="h-6 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 data-[state=open]:bg-muted data-[state=open]:text-foreground font-medium rounded cursor-pointer transition-colors">
-            Koneksi
+            {t("menubar.connection", "Koneksi")}
           </MenubarTrigger>
           <MenubarContent className="min-w-56 text-xs" align="start">
             <MenubarItem
@@ -307,7 +309,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleNewConnection}
             >
               <Database size={13} className="text-primary" />
-              <span>Tambah Server Database Baru</span>
+              <span>{t("menubar.newConnection", "Tambah Server Database Baru")}</span>
             </MenubarItem>
 
             <MenubarItem
@@ -315,7 +317,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleNewSshTunnel}
             >
               <Terminal size={13} className="text-purple-400" />
-              <span>Tambah Profil SSH Tunnel</span>
+              <span>{t("menubar.newSshTunnel", "Tambah Profil SSH Tunnel")}</span>
             </MenubarItem>
 
             <MenubarSeparator />
@@ -324,26 +326,26 @@ export function AppMenubar({ className }: AppMenubarProps) {
             <MenubarSub>
               <MenubarSubTrigger className="cursor-pointer gap-2">
                 <Layers size={13} className="text-muted-foreground" />
-                <span>Filter Tipe Koneksi</span>
+                <span>{t("grid.filterAll", "Filter Tipe Koneksi")}</span>
               </MenubarSubTrigger>
               <MenubarSubContent className="min-w-44 text-xs">
                 <MenubarItem
                   className="cursor-pointer"
                   onClick={() => handleFilterMethod("all")}
                 >
-                  Semua Tipe Koneksi
+                  {t("menubar.filterAll", "Semua Tipe Koneksi")}
                 </MenubarItem>
                 <MenubarItem
                   className="cursor-pointer"
                   onClick={() => handleFilterMethod("direct")}
                 >
-                  Koneksi Langsung (Direct)
+                  {t("menubar.filterDirect", "Koneksi Langsung (Direct)")}
                 </MenubarItem>
                 <MenubarItem
                   className="cursor-pointer"
                   onClick={() => handleFilterMethod("ssh")}
                 >
-                  Terowongan SSH (Tunnel)
+                  {t("menubar.filterSsh", "Terowongan SSH (Tunnel)")}
                 </MenubarItem>
               </MenubarSubContent>
             </MenubarSub>
@@ -353,7 +355,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={handleToggleFavoriteFilter}
             >
               <Shield size={13} className="text-amber-400" />
-              <span>Filter Host Favorit</span>
+              <span>{t("grid.favoritesOnly", "Filter Host Favorit")}</span>
             </MenubarItem>
 
             <MenubarSeparator />
@@ -395,7 +397,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
         {/* MENU: TAMPILAN / VIEW */}
         <MenubarMenu>
           <MenubarTrigger className="h-6 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 data-[state=open]:bg-muted data-[state=open]:text-foreground font-medium rounded cursor-pointer transition-colors">
-            Tampilan
+            {t("menubar.view", "Tampilan")}
           </MenubarTrigger>
           <MenubarContent className="min-w-52 text-xs" align="start">
             <MenubarItem
@@ -403,7 +405,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={() => toggleTheme()}
             >
               <SunMoon size={13} className="text-muted-foreground" />
-              <span>Ganti Tema (Gelap / Terang)</span>
+              <span>{t("menubar.toggleTheme", "Ganti Tema (Gelap / Terang)")}</span>
             </MenubarItem>
 
             <MenubarItem
@@ -411,7 +413,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={toggleMaximize}
             >
               <Maximize2 size={13} className="text-muted-foreground" />
-              <span>{isMaximized ? "Mode Normal" : "Maksimalkan Jendela"}</span>
+              <span>{isMaximized ? "Mode Normal" : t("menubar.toggleMaximize", "Maksimalkan Jendela")}</span>
               <MenubarShortcut>F11</MenubarShortcut>
             </MenubarItem>
 
@@ -435,7 +437,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               }
             >
               <PanelLeftClose size={13} className="text-muted-foreground" />
-              <span>Perluas / Ciutkan Sidebar</span>
+              <span>{t("header.collapseSidebar", "Perluas / Ciutkan Sidebar")}</span>
               <MenubarShortcut>Ctrl+B</MenubarShortcut>
             </MenubarItem>
           </MenubarContent>
@@ -444,7 +446,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
         {/* MENU: BANTUAN / HELP */}
         <MenubarMenu>
           <MenubarTrigger className="h-6 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 data-[state=open]:bg-muted data-[state=open]:text-foreground font-medium rounded cursor-pointer transition-colors">
-            Bantuan
+            {t("menubar.help", "Bantuan")}
           </MenubarTrigger>
           <MenubarContent className="min-w-60 text-xs" align="start">
             <MenubarItem
@@ -452,7 +454,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={() => setShortcutsOpen(true)}
             >
               <Keyboard size={13} className="text-muted-foreground" />
-              <span>Daftar Shortcut Keyboard</span>
+              <span>{t("menubar.keyboardShortcuts", "Daftar Shortcut Keyboard")}</span>
             </MenubarItem>
 
             <MenubarItem
@@ -480,7 +482,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               }}
             >
               <RefreshCw size={13} className="text-muted-foreground" />
-              <span>Periksa Pembaruan Online...</span>
+              <span>{t("menubar.checkUpdates", "Periksa Pembaruan Online...")}</span>
             </MenubarItem>
 
             <MenubarSeparator />
@@ -490,7 +492,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
               onClick={() => setAboutOpen(true)}
             >
               <HelpCircle size={13} className="text-primary" />
-              <span>Tentang xphpMyAdmin Desktop</span>
+              <span>{t("menubar.aboutApp", "Tentang xphpMyAdmin Desktop")}</span>
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
@@ -555,7 +557,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
                 onClick={() => setAboutOpen(false)}
                 type="button"
               >
-                Tutup
+                {t("common.close", "Tutup")}
               </button>
             </div>
           </div>
@@ -575,7 +577,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
                 <Keyboard size={18} className="text-primary" />
-                <h3 className="font-bold text-sm">Shortcut Keyboard Aplikasi</h3>
+                <h3 className="font-bold text-sm">{t("menubar.keyboardShortcuts", "Shortcut Keyboard Aplikasi")}</h3>
               </div>
               <button
                 className="rounded p-1 text-muted-foreground hover:text-foreground cursor-pointer"
@@ -592,13 +594,13 @@ export function AppMenubar({ className }: AppMenubarProps) {
                   Manajemen Koneksi & Tab
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                  <span>Koneksi Baru</span>
+                  <span>{t("menubar.newConnection", "Koneksi Baru")}</span>
                   <span className="font-mono text-foreground text-right">Ctrl + N</span>
-                  <span>SSH Tunnel Baru</span>
+                  <span>{t("menubar.newSshTunnel", "SSH Tunnel Baru")}</span>
                   <span className="font-mono text-foreground text-right">Ctrl + Shift + N</span>
-                  <span>Sinkronisasi Cloud</span>
+                  <span>{t("menubar.syncCloudNow", "Sinkronisasi Cloud")}</span>
                   <span className="font-mono text-foreground text-right">Ctrl + S</span>
-                  <span>Tutup Tab Aktif</span>
+                  <span>{t("menubar.closeTab", "Tutup Tab Aktif")}</span>
                   <span className="font-mono text-foreground text-right">Ctrl + W</span>
                 </div>
               </div>
@@ -610,13 +612,13 @@ export function AppMenubar({ className }: AppMenubarProps) {
                 <div className="grid grid-cols-2 gap-2 text-muted-foreground">
                   <span>Muat Ulang (Reload)</span>
                   <span className="font-mono text-foreground text-right">Ctrl + R</span>
-                  <span>Layar Penuh (Maximize)</span>
+                  <span>{t("menubar.toggleMaximize", "Layar Penuh (Maximize)")}</span>
                   <span className="font-mono text-foreground text-right">F11</span>
-                  <span>Toggle Sidebar</span>
+                  <span>{t("header.collapseSidebar", "Toggle Sidebar")}</span>
                   <span className="font-mono text-foreground text-right">Ctrl + B</span>
-                  <span>Pengaturan</span>
+                  <span>{t("sidebar.settings", "Pengaturan")}</span>
                   <span className="font-mono text-foreground text-right">Ctrl + ,</span>
-                  <span>Cari Koneksi</span>
+                  <span>{t("menubar.searchConnections", "Cari Koneksi")}</span>
                   <span className="font-mono text-foreground text-right">Ctrl + F</span>
                 </div>
               </div>
@@ -637,7 +639,7 @@ export function AppMenubar({ className }: AppMenubarProps) {
                 onClick={() => setShortcutsOpen(false)}
                 type="button"
               >
-                Mengerti
+                {t("common.confirm", "Mengerti")}
               </button>
             </div>
           </div>

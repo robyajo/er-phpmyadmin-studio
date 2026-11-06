@@ -18,6 +18,7 @@ import {
   Workflow,
 } from "lucide-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/types/connection";
@@ -51,6 +52,8 @@ export function WorkspaceNav({
   onSwitchWorkspaceTab,
   selectedTable,
 }: WorkspaceNavProps) {
+  const { t } = useTranslation();
+
   // phpMyAdmin tabs
   const tabs = [
     ...(selectedTable
@@ -58,43 +61,91 @@ export function WorkspaceNav({
           {
             icon: Play,
             id: "browse" as WorkspaceTabId,
-            label: "Browse",
+            label: t("workspaceNav.browse", "Browse"),
           },
         ]
       : []),
-    { icon: Database, id: "databases" as WorkspaceTabId, label: "Databases" },
+    {
+      icon: Database,
+      id: "databases" as WorkspaceTabId,
+      label: t("workspaceNav.databases", "Databases"),
+    },
     {
       icon: TableIcon,
       id: "structure" as WorkspaceTabId,
       label: currentSelectedDatabase
-        ? `Structure (${currentSelectedDatabase})`
-        : "Structure",
+        ? `${t("workspaceNav.structure", "Structure")} (${currentSelectedDatabase})`
+        : t("workspaceNav.structure", "Structure"),
     },
-    { icon: Code2, id: "sql" as WorkspaceTabId, label: "SQL" },
-    { icon: Search, id: "search" as WorkspaceTabId, label: "Search" },
+    {
+      icon: Code2,
+      id: "sql" as WorkspaceTabId,
+      label: t("workspaceNav.sql", "SQL"),
+    },
+    {
+      icon: Search,
+      id: "search" as WorkspaceTabId,
+      label: t("workspaceNav.search", "Search"),
+    },
     ...(selectedTable
       ? [
           {
             icon: Plus,
             id: "insert" as WorkspaceTabId,
-            label: "Insert",
+            label: t("workspaceNav.insert", "Insert"),
           },
         ]
       : []),
-    { icon: Sliders, id: "operations" as WorkspaceTabId, label: "Operations" },
-    { icon: FileDown, id: "export" as WorkspaceTabId, label: "Export" },
-    { icon: FileUp, id: "import" as WorkspaceTabId, label: "Import" },
-    { icon: Workflow, id: "routines" as WorkspaceTabId, label: "Routines" },
-    { icon: Activity, id: "status" as WorkspaceTabId, label: "Status" },
-    { icon: Users, id: "users" as WorkspaceTabId, label: "User accounts" },
+    {
+      icon: Sliders,
+      id: "operations" as WorkspaceTabId,
+      label: t("workspaceNav.operations", "Operations"),
+    },
+    {
+      icon: FileDown,
+      id: "export" as WorkspaceTabId,
+      label: t("workspaceNav.export", "Export"),
+    },
+    {
+      icon: FileUp,
+      id: "import" as WorkspaceTabId,
+      label: t("workspaceNav.import", "Import"),
+    },
+    {
+      icon: Workflow,
+      id: "routines" as WorkspaceTabId,
+      label: t("workspaceNav.routines", "Routines"),
+    },
+    {
+      icon: Activity,
+      id: "status" as WorkspaceTabId,
+      label: t("workspaceNav.status", "Status"),
+    },
+    {
+      icon: Users,
+      id: "users" as WorkspaceTabId,
+      label: t("workspaceNav.users", "User accounts"),
+    },
     {
       icon: SlidersHorizontal,
       id: "variables" as WorkspaceTabId,
-      label: "Variables",
+      label: t("workspaceNav.variables", "Variables"),
     },
-    { icon: Columns, id: "charsets" as WorkspaceTabId, label: "Charsets" },
-    { icon: Server, id: "engines" as WorkspaceTabId, label: "Engines" },
-    { icon: Layers, id: "plugins" as WorkspaceTabId, label: "Plugins" },
+    {
+      icon: Columns,
+      id: "charsets" as WorkspaceTabId,
+      label: t("workspaceNav.charsets", "Charsets"),
+    },
+    {
+      icon: Server,
+      id: "engines" as WorkspaceTabId,
+      label: t("workspaceNav.engines", "Engines"),
+    },
+    {
+      icon: Layers,
+      id: "plugins" as WorkspaceTabId,
+      label: t("workspaceNav.plugins", "Plugins"),
+    },
   ];
 
   return (
@@ -107,11 +158,11 @@ export function WorkspaceNav({
               className="flex h-7 shrink-0 items-center gap-1.5 border-border bg-muted/40 px-2 text-primary hover:bg-muted hover:text-foreground cursor-pointer"
               onClick={onOpenWorkspaceSidebar}
               size="sm"
-              title="Tampilkan Explorer Basis Data"
+              title={t("workspaceNav.explorer", "Explorer")}
               variant="outline"
             >
               <PanelLeft size={13} />
-              <span className="hidden sm:inline">Explorer</span>
+              <span className="hidden sm:inline">{t("workspaceNav.explorer", "Explorer")}</span>
               {availableDatabasesCount > 0 && (
                 <span className="font-mono text-[10px] text-emerald-500">
                   ({availableDatabasesCount})
@@ -124,12 +175,16 @@ export function WorkspaceNav({
           <button
             className="flex items-center gap-1 max-w-[140px] sm:max-w-[180px] md:max-w-[220px] truncate font-medium text-foreground hover:text-primary hover:underline cursor-pointer"
             onClick={onSelectServerBreadcrumb}
-            title="Kembali ke level Server"
+            title={t("workspaceNav.serverBreadcrumb", "Server: {{host}}", {
+              host: activeConnectedProfile?.name || activeConnectedProfile?.host || "localhost",
+            })}
             type="button"
           >
             <Server className="size-3 text-muted-foreground shrink-0" />
             <span className="truncate">
-              Server: {activeConnectedProfile?.name || activeConnectedProfile?.host || "localhost"}
+              {t("workspaceNav.serverBreadcrumb", "Server: {{host}}", {
+                host: activeConnectedProfile?.name || activeConnectedProfile?.host || "localhost",
+              })}
             </span>
           </button>
 
@@ -139,11 +194,17 @@ export function WorkspaceNav({
               <button
                 className="flex items-center gap-1 max-w-[120px] sm:max-w-[160px] truncate font-mono text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                 onClick={onSelectDatabaseBreadcrumb}
-                title={`Basis Data: ${currentSelectedDatabase}`}
+                title={t("workspaceNav.databaseBreadcrumb", "Database: {{db}}", {
+                  db: currentSelectedDatabase,
+                })}
                 type="button"
               >
                 <Database className="size-3 shrink-0" />
-                <span className="truncate">Database: {currentSelectedDatabase}</span>
+                <span className="truncate">
+                  {t("workspaceNav.databaseBreadcrumb", "Database: {{db}}", {
+                    db: currentSelectedDatabase,
+                  })}
+                </span>
               </button>
             </>
           )}
@@ -154,11 +215,17 @@ export function WorkspaceNav({
               <button
                 className="flex items-center gap-1 max-w-[120px] sm:max-w-[160px] truncate font-mono text-primary font-semibold hover:underline cursor-pointer"
                 onClick={onSelectTableBreadcrumb}
-                title={`Tabel: ${selectedTable}`}
+                title={t("workspaceNav.tableBreadcrumb", "Table: {{table}}", {
+                  table: selectedTable,
+                })}
                 type="button"
               >
                 <TableIcon className="size-3 shrink-0" />
-                <span className="truncate">Table: {selectedTable}</span>
+                <span className="truncate">
+                  {t("workspaceNav.tableBreadcrumb", "Table: {{table}}", {
+                    table: selectedTable,
+                  })}
+                </span>
               </button>
             </>
           )}

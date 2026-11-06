@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -75,14 +76,16 @@ export function ConnectionGrid({
   selectedId,
   sortBy,
 }: ConnectionGridProps) {
+  const { t } = useTranslation();
+
   const handleCopyInfo = (label: string, text: string) => {
     try {
       navigator.clipboard.writeText(text);
-      toast.success(`${label} disalin ke clipboard!`, {
+      toast.success(t("grid.copySuccess", "{{label}} disalin ke clipboard!", { label }), {
         description: text,
       });
     } catch {
-      toast.error(`Gagal menyalin ${label}`);
+      toast.error(t("grid.copyFailed", "Gagal menyalin {{label}}", { label }));
     }
   };
 
@@ -97,8 +100,8 @@ export function ConnectionGrid({
             size="sm"
           >
             <Plus size={13} />
-            <span className="hidden sm:inline">Tambah Koneksi</span>
-            <span className="sm:hidden">Tambah</span>
+            <span className="hidden sm:inline">{t("grid.addHost", "Tambah Koneksi")}</span>
+            <span className="sm:hidden">{t("grid.addHostShort", "Tambah")}</span>
           </Button>
 
           {onAddNewSshTunnel && (
@@ -106,12 +109,12 @@ export function ConnectionGrid({
               className="flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-purple-300 bg-purple-50 px-2 font-semibold text-purple-700 text-xs hover:bg-purple-100 dark:border-purple-500/40 dark:bg-purple-600/15 dark:text-purple-200 dark:hover:bg-purple-600/25 sm:px-2.5"
               onClick={onAddNewSshTunnel}
               size="sm"
-              title="Buat koneksi baru dengan metode SSH Tunnel (VPS)"
+              title={t("grid.addSshTunnelTitle", "Buat koneksi baru dengan metode SSH Tunnel (VPS)")}
               variant="outline"
             >
               <Terminal size={12} />
-              <span className="hidden sm:inline">+ SSH Tunnel</span>
-              <span className="sm:hidden">SSH</span>
+              <span className="hidden sm:inline">{t("grid.addSshTunnel", "+ SSH Tunnel")}</span>
+              <span className="sm:hidden">{t("grid.addSshTunnelShort", "SSH")}</span>
             </Button>
           )}
 
@@ -130,7 +133,7 @@ export function ConnectionGrid({
                 onClick={() => onMethodFilterChange("all")}
                 type="button"
               >
-                Semua
+                {t("grid.filterAll", "Semua")}
               </button>
               <button
                 className={cn(
@@ -142,7 +145,7 @@ export function ConnectionGrid({
                 onClick={() => onMethodFilterChange("direct")}
                 type="button"
               >
-                Direct
+                {t("grid.filterDirect", "Direct")}
               </button>
               <button
                 className={cn(
@@ -155,7 +158,7 @@ export function ConnectionGrid({
                 type="button"
               >
                 <Terminal size={10} />
-                <span>SSH</span>
+                <span>{t("grid.filterSsh", "SSH")}</span>
               </button>
             </div>
           )}
@@ -172,14 +175,14 @@ export function ConnectionGrid({
               className="cursor-pointer select-none text-[11px] hidden xs:inline"
               htmlFor="fav-filter"
             >
-              Favorit
+              {t("grid.favoritesOnly", "Favorit")}
             </label>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <span className="hidden text-[11px] text-muted-foreground/70 md:inline">
-            Urutkan:
+            {t("grid.sortBy", "Urutkan:")}
           </span>
           <Select
             onValueChange={(val: "recent" | "name") => onSortByChange(val)}
@@ -189,8 +192,8 @@ export function ConnectionGrid({
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="text-xs">
-              <SelectItem value="recent">Terakhir</SelectItem>
-              <SelectItem value="name">Nama</SelectItem>
+              <SelectItem value="recent">{t("grid.sortRecent", "Terakhir")}</SelectItem>
+              <SelectItem value="name">{t("grid.sortName", "Nama")}</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -204,13 +207,13 @@ export function ConnectionGrid({
             size="sm"
             title={
               isInspectorOpen
-                ? "Tutup Inspector Host Details"
-                : "Buka Inspector Host Details"
+                ? t("grid.closeInspector", "Tutup Inspector Host Details")
+                : t("grid.openInspector", "Buka Inspector Host Details")
             }
             variant="outline"
           >
             <SlidersHorizontal size={12} />
-            <span className="hidden sm:inline">Detail Host</span>
+            <span className="hidden sm:inline">{t("grid.hostDetails", "Detail Host")}</span>
           </Button>
         </div>
       </div>
@@ -218,9 +221,9 @@ export function ConnectionGrid({
       {/* Grid of Profile Cards */}
       <div className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
         <div className="flex items-center justify-between text-muted-foreground text-xs">
-          <span>{filteredProfiles.length} koneksi ditemukan</span>
+          <span>{t("grid.connectionsFound", "{{count}} koneksi ditemukan", { count: filteredProfiles.length })}</span>
           <span className="hidden text-[11px] text-muted-foreground/70 sm:inline">
-            Tervalidasi siap terhubung ke MySQL & MariaDB
+            {t("grid.readyToConnect", "Tervalidasi siap terhubung ke MySQL & MariaDB")}
           </span>
         </div>
 
@@ -231,13 +234,13 @@ export function ConnectionGrid({
             </div>
             <h4 className="mt-3 font-semibold text-foreground text-sm">
               {methodFilter === "ssh"
-                ? "Belum ada koneksi SSH Tunnel"
-                : "Tidak ada koneksi yang cocok"}
+                ? t("grid.noSshTitle", "Belum ada koneksi SSH Tunnel")
+                : t("grid.noHostTitle", "Tidak ada koneksi yang cocok")}
             </h4>
             <p className="mt-1 max-w-sm text-muted-foreground text-xs">
               {methodFilter === "ssh"
-                ? "Buat profil koneksi baru dengan metode SSH Tunnel untuk menghubungkan database di VPS tanpa membuka port publik."
-                : "Coba ubah kata kunci pencarian atau buat koneksi database baru."}
+                ? t("grid.noSshDesc", "Buat profil koneksi baru dengan metode SSH Tunnel untuk menghubungkan database di VPS tanpa membuka port publik.")
+                : t("grid.noHostDesc", "Coba ubah kata kunci pencarian atau buat koneksi database baru.")}
             </p>
             {methodFilter === "ssh" && onAddNewSshTunnel && (
               <Button
@@ -246,7 +249,7 @@ export function ConnectionGrid({
                 size="sm"
               >
                 <Terminal size={13} />
-                + Buat SSH Tunnel Sekarang
+                {t("grid.createSshNow", "+ Buat SSH Tunnel Sekarang")}
               </Button>
             )}
           </div>
@@ -312,7 +315,7 @@ export function ConnectionGrid({
                               aria-label={`Duplikat koneksi ${p.name}`}
                               className="cursor-pointer rounded p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
                               onClick={(e) => onDuplicateHost(p, e)}
-                              title="Duplikat / Klon Koneksi Ini"
+                              title={t("grid.duplicateHost", "Duplikasi / Klon Koneksi Ini")}
                               type="button"
                             >
                               <Copy size={13} />
@@ -325,14 +328,16 @@ export function ConnectionGrid({
                               e.stopPropagation();
                               onDeleteHost(p);
                             }}
-                            title="Hapus Koneksi"
+                            title={t("grid.deleteHost", "Hapus Koneksi")}
                             type="button"
                           >
                             <Trash2 size={13} />
                           </button>
                           <button
                             aria-label={
-                              p.favorite ? "Hapus dari Favorit" : "Tambah ke Favorit"
+                              p.favorite
+                                ? t("grid.removeFromFavorites", "Hapus dari Favorit")
+                                : t("grid.addToFavorites", "Tambah ke Favorit")
                             }
                             className="cursor-pointer p-1 text-muted-foreground/70 transition-colors hover:text-amber-500"
                             onClick={(e) => onToggleFavorite(p.id, e)}
@@ -377,7 +382,7 @@ export function ConnectionGrid({
                           )}
                         </div>
                         <span className="text-muted-foreground/70 truncate ml-2 text-[10px]">
-                          {p.last_used_at ? "Aktif baru-baru ini" : "Belum dibuka"}
+                          {p.last_used_at ? t("grid.lastConnected", "Aktif baru-baru ini") : t("grid.neverConnected", "Belum dibuka")}
                         </span>
                       </div>
                     </Card>
@@ -395,7 +400,7 @@ export function ConnectionGrid({
                       }}
                     >
                       <Play className="text-primary fill-primary/20" size={13} />
-                      <span>Hubungkan Database</span>
+                      <span>{t("grid.connectHost", "Hubungkan Database")}</span>
                       <ContextMenuShortcut>↵</ContextMenuShortcut>
                     </ContextMenuItem>
 
@@ -404,7 +409,7 @@ export function ConnectionGrid({
                       onClick={() => onSelectHost(p)}
                     >
                       <SlidersHorizontal className="text-muted-foreground" size={13} />
-                      <span>Buka Form / Edit Profil</span>
+                      <span>{t("inspector.saveProfile", "Buka Form / Edit Profil")}</span>
                     </ContextMenuItem>
 
                     {onDuplicateHost && (
@@ -413,7 +418,7 @@ export function ConnectionGrid({
                         onClick={(e) => onDuplicateHost(p, e)}
                       >
                         <Copy className="text-muted-foreground" size={13} />
-                        <span>Duplikat / Clone Koneksi</span>
+                        <span>{t("grid.duplicateHost", "Duplikat / Clone Koneksi")}</span>
                       </ContextMenuItem>
                     )}
 
@@ -429,7 +434,9 @@ export function ConnectionGrid({
                         size={13}
                       />
                       <span>
-                        {p.favorite ? "Hapus dari Favorit" : "Tambah ke Favorit"}
+                        {p.favorite
+                          ? t("grid.removeFromFavorites", "Hapus dari Favorit")
+                          : t("grid.addToFavorites", "Tambah ke Favorit")}
                       </span>
                     </ContextMenuItem>
 
@@ -438,26 +445,26 @@ export function ConnectionGrid({
                     <ContextMenuSub>
                       <ContextMenuSubTrigger className="cursor-pointer gap-2">
                         <ClipboardCopy className="text-muted-foreground" size={13} />
-                        <span>Salin Informasi Koneksi</span>
+                        <span>{t("grid.copyConnectionInfo", "Salin Informasi Koneksi")}</span>
                       </ContextMenuSubTrigger>
                       <ContextMenuSubContent className="w-52 text-xs">
                         <ContextMenuItem
                           className="cursor-pointer"
                           onClick={() => handleCopyInfo("Host", p.host)}
                         >
-                          Salin Host ({p.host})
+                          {t("grid.copyHost", "Salin Host")} ({p.host})
                         </ContextMenuItem>
                         <ContextMenuItem
                           className="cursor-pointer"
                           onClick={() => handleCopyInfo("Port", String(p.port))}
                         >
-                          Salin Port ({p.port})
+                          {t("grid.copyPort", "Salin Port")} ({p.port})
                         </ContextMenuItem>
                         <ContextMenuItem
                           className="cursor-pointer"
                           onClick={() => handleCopyInfo("Username", p.username)}
                         >
-                          Salin Username ({p.username})
+                          {t("grid.copyUsername", "Salin Username")} ({p.username})
                         </ContextMenuItem>
                         {p.database && (
                           <ContextMenuItem
@@ -466,7 +473,7 @@ export function ConnectionGrid({
                               handleCopyInfo("Database", p.database || "")
                             }
                           >
-                            Salin Database ({p.database})
+                            {t("grid.copyDatabase", "Salin Database")} ({p.database})
                           </ContextMenuItem>
                         )}
                         <ContextMenuSeparator />
@@ -479,7 +486,7 @@ export function ConnectionGrid({
                             )
                           }
                         >
-                          Salin MySQL URI
+                          {t("grid.copyMysqlUri", "Salin MySQL URI")}
                         </ContextMenuItem>
                         {isSsh && p.ssh?.host && (
                           <ContextMenuItem
@@ -491,7 +498,7 @@ export function ConnectionGrid({
                               )
                             }
                           >
-                            Salin Perintah SSH CLI
+                            {t("grid.copySshCli", "Salin Perintah SSH CLI")}
                           </ContextMenuItem>
                         )}
                       </ContextMenuSubContent>
@@ -505,7 +512,7 @@ export function ConnectionGrid({
                       variant="destructive"
                     >
                       <Trash2 size={13} />
-                      <span>Hapus Koneksi</span>
+                      <span>{t("grid.deleteHost", "Hapus Koneksi")}</span>
                       <ContextMenuShortcut>Del</ContextMenuShortcut>
                     </ContextMenuItem>
                   </ContextMenuContent>

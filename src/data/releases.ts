@@ -26,58 +26,73 @@ export interface ReleaseNote {
 
 export const RELEASES_DATA: ReleaseNote[] = [
   {
-    "version": "1.4.2",
-    "date": "2026-11-06",
-    "type": "feature",
-    "status": "published",
-    "project": {
-      "name": "xphpMyAdmin — Pengelola Koneksi Database Remote"
-    },
-    "title": {
-      "id": "Fitur Duplikasi Koneksi, Kemudahan Salin Pesan, & Optimasi Sistem",
-      "en": "Connection Duplication Feature, Streamlined Message Copying, & System Boost"
-    },
-    "body": {
-      "id": "Pembaruan ini menghadirkan fitur klon koneksi host untuk memudahkan pembuatan profil server baru tanpa mengisi dari awal, dukungan penyalinan pesan sistem dan menu klik kanan desktop, serta peningkatan efisiensi distribusi aplikasi multi-platform.",
-      "en": "This update introduces a connection cloning feature to quickly create new server profiles without reconfiguring from scratch, brings full text copying support and native desktop right-click menus, and optimizes multi-platform distribution efficiency."
-    },
-    "items": [
-      {
-        "type": "new",
-        "id": "Fitur Duplikasi & Klon Profil Koneksi: Pengguna kini dapat menggandakan konfigurasi server database atau terowongan yang sudah ada dengan satu klik, memudahkan pembuatan profil baru tanpa perlu mengisi ulang seluruh parameter dari awal.",
-        "en": "Connection Profile Duplication & Cloning Feature: Users can now clone existing database server or tunnel configurations with a single click, eliminating the need to re-enter all connection parameters from scratch."
+      "date": "2026-11-06",
+      "type": "feature",
+      "status": "published",
+      "project": {
+          "name": "xphpMyAdmin — Pengelola Koneksi Database Remote"
       },
-      {
-        "type": "new",
-        "id": "Menu Konteks Kartu & Menu Bar Aplikasi Desktop: Menyediakan menu bar desktop (Berkas, Sunting, Koneksi, Tampilan, Bantuan) dan menu klik kanan pada kartu koneksi untuk menghubungkan, mengedit, menduplikasi, dan menyalin parameter secara instan.",
-        "en": "Card Context Menu & Desktop Application Menu Bar: Implements native desktop menubar and right-click context menu on connection cards for connecting, editing, duplicating, and copying parameters instantly."
+      "title": {
+          "id": "Fitur Duplikasi Koneksi, Dukungan Dwibahasa Lengkap, & Optimasi Mac",
+          "en": "Connection Duplication, Full Bilingual Support, & Mac Platform Optimization"
       },
-      {
-        "type": "fix",
-        "id": "Persistensi Password Brankas Lokal & Sinkronisasi Cloud: Password database kini tersimpan permanen di brankas lokal (Local Vault) dan ikut tersinkronisasi ke Neon Cloud Backend, sehingga pengguna tidak perlu lagi memasukkan ulang password setiap kali membuka aplikasi.",
-        "en": "Local Vault Password Persistence & Cloud Sync: Database passwords are now permanently stored in the local vault and synchronized with Neon Cloud Backend, eliminating the need to re-enter credentials upon application restarts."
+      "body": {
+          "id": "Pembaruan ini menghadirkan fitur klon koneksi host untuk memudahkan pembuatan profil server baru tanpa mengisi dari awal, dukungan dwibahasa menyeluruh (Indonesia & Inggris) di seluruh antarmuka aplikasi, tampilan ikon resmi di macOS Dock, penyalinan pesan sistem dan menu desktop, serta penyempurnaan pembuatan paket distribusi macOS Apple Silicon.",
+          "en": "This update introduces a connection cloning feature to quickly create new server profiles without reconfiguring from scratch, comprehensive bilingual support (Indonesian & English) across all application views, official icon display in macOS Dock, native desktop right-click menus, and streamlined macOS Apple Silicon packaging."
       },
-      {
-        "type": "improvement",
-        "id": "Kemudahan Penyalinan Pesan Error & Menu Konteks Desktop: Notifikasi sistem kini mendukung seleksi teks langsung, tombol salin instan, klik dua kali untuk menyalin, serta menu klik kanan native desktop untuk memudahkan pemeriksaan kendala.",
-        "en": "Streamlined Error Copying & Native Desktop Context Menu: System notifications now support direct text selection, instant copy buttons, double-click to copy, and a native desktop right-click context menu for effortless diagnostic review."
-      },
-      {
-        "type": "improvement",
-        "id": "Optimalisasi Pembuatan Paket Distribusi Multi-Platform: Jalur pembuatan paket aplikasi mandiri untuk Linux, macOS, dan Windows kini bekerja lebih cepat, efisien dalam penggunaan ruang penyimpanan, serta bebas hambatan pada seluruh perangkat.",
-        "en": "Multi-Platform Distribution Packaging Optimization: Application packaging workflows for Linux, macOS, and Windows are now faster, more storage-efficient, and seamless across all desktop devices."
-      },
-      {
-        "type": "improvement",
-        "id": "Peningkatan Kecepatan & Efisiensi Pemasangan Komponen: Proses pembaruan dan instalasi komponen aplikasi kini dioptimalkan dengan manajemen penyimpanan bersama, memangkas waktu pemuatan dan memastikan konsistensi lingkungan kerja yang stabil.",
-        "en": "Component Installation Speed & Efficiency Enhancement: Component installation and updates are now optimized with unified storage caching, cutting down setup durations and guaranteeing environment consistency."
-      },
-      {
-        "type": "fix",
-        "id": "Penegakan Integritas Audit dan Pengujian Sistem: Memperbaiki kelengkapan rincian pencatatan riwayat aksi pada modul sinkronisasi brankas data, memastikan seluruh rangkaian pengujian sistem lolos dengan status sempurna dan bebas galat.",
-        "en": "Audit Integrity Enforcement & System Test Stabilization: Fixed action record details in the data vault synchronization module, ensuring all automated system test suites pass with complete reliability."
-      }
-    ]
+      "items": [
+          {
+              "type": "new",
+              "id": "Fitur Duplikasi & Klon Profil Koneksi: Pengguna kini dapat menggandakan konfigurasi server database atau terowongan yang sudah ada dengan satu klik, memudahkan pembuatan profil baru tanpa perlu mengisi ulang seluruh parameter dari awal.",
+              "en": "Connection Profile Duplication & Cloning Feature: Users can now clone existing database server or tunnel configurations with a single click, eliminating the need to re-enter all connection parameters from scratch."
+          },
+          {
+              "type": "new",
+              "id": "Menu Konteks Kartu & Menu Bar Aplikasi Desktop: Menyediakan menu bar desktop (Berkas, Sunting, Koneksi, Tampilan, Bantuan) dan menu klik kanan pada kartu koneksi untuk menghubungkan, mengedit, menduplikasi, dan menyalin parameter secara instan.",
+              "en": "Card Context Menu & Desktop Application Menu Bar: Implements native desktop menubar and right-click context menu on connection cards for connecting, editing, duplicating, and copying parameters instantly."
+          },
+          {
+              "type": "fix",
+              "id": "Persistensi Password Brankas Lokal & Sinkronisasi Cloud: Password database kini tersimpan permanen di brankas lokal (Local Vault) dan ikut tersinkronisasi ke Neon Cloud Backend, sehingga pengguna tidak perlu lagi memasukkan ulang password setiap kali membuka aplikasi.",
+              "en": "Local Vault Password Persistence & Cloud Sync: Database passwords are now permanently stored in the local vault and synchronized with Neon Cloud Backend, eliminating the need to re-enter credentials upon application restarts."
+          },
+          {
+              "type": "improvement",
+              "id": "Kemudahan Penyalinan Pesan Error & Menu Konteks Desktop: Notifikasi sistem kini mendukung seleksi teks langsung, tombol salin instan, klik dua kali untuk menyalin, serta menu klik kanan native desktop untuk memudahkan pemeriksaan kendala.",
+              "en": "Streamlined Error Copying & Native Desktop Context Menu: System notifications now support direct text selection, instant copy buttons, double-click to copy, and a native desktop right-click context menu for effortless diagnostic review."
+          },
+          {
+              "type": "improvement",
+              "id": "Optimalisasi Pembuatan Paket Distribusi Multi-Platform: Jalur pembuatan paket aplikasi mandiri untuk Linux, macOS, dan Windows kini bekerja lebih cepat, efisien dalam penggunaan ruang penyimpanan, serta bebas hambatan pada seluruh perangkat.",
+              "en": "Multi-Platform Distribution Packaging Optimization: Application packaging workflows for Linux, macOS, and Windows are now faster, more storage-efficient, and seamless across all desktop devices."
+          },
+          {
+              "type": "improvement",
+              "id": "Peningkatan Kecepatan & Efisiensi Pemasangan Komponen: Proses pembaruan dan instalasi komponen aplikasi kini dioptimalkan dengan manajemen penyimpanan bersama, memangkas waktu pemuatan dan memastikan konsistensi lingkungan kerja yang stabil.",
+              "en": "Component Installation Speed & Efficiency Enhancement: Component installation and updates are now optimized with unified storage caching, cutting down setup durations and guaranteeing environment consistency."
+          },
+          {
+              "type": "fix",
+              "id": "Penegakan Integritas Audit dan Pengujian Sistem: Memperbaiki kelengkapan rincian pencatatan riwayat aksi pada modul sinkronisasi brankas data, memastikan seluruh rangkaian pengujian sistem lolos dengan status sempurna dan bebas galat.",
+              "en": "Audit Integrity Enforcement & System Test Stabilization: Fixed action record details in the data vault synchronization module, ensuring all automated system test suites pass with complete reliability."
+          },
+          {
+              "type": "improvement",
+              "id": "Dukungan Bahasa Menyeluruh Tanpa Hambatan: Memperbaiki keterbatasan pergantian bahasa sebelumnya dengan mengintegrasikan kamus dwibahasa (Indonesia & Inggris) penuh ke seluruh komponen aplikasi—mulai dari bilah tab navigasi, bilah samping koneksi, daftar & menu kartu server, formulir pengaturan host & SSH, menu bar desktop, tab pengelola database, hingga pusat pembaruan.",
+              "en": "Comprehensive Seamless Bilingual Support: Resolved partial language switching limitations by integrating complete bilingual (Indonesian & English) dictionaries across all application components—including navigation header tabs, connection sidebar, host cards & context menus, host & SSH configuration forms, application menubar, database workspace tabs, and the updates center."
+          },
+          {
+              "type": "fix",
+              "id": "Tampilan Ikon Resmi Aplikasi di macOS Dock: Memperbaiki tampilan ikon aplikasi pada sistem macOS agar senantiasa menampilkan logo resmi di Dock secara tajam dan konsisten baik dalam mode pengembangan maupun saat terpasang di sistem, menggantikan ikon bawaan.",
+              "en": "Official Application Icon in macOS Dock: Enhanced macOS integration to consistently display the crisp, official brand icon in the system Dock during both local runtime and production installations, replacing generic system fallbacks."
+          },
+          {
+              "type": "improvement",
+              "id": "Penyempurnaan Jalur Kompilasi & Pemasangan Mac Apple Chip: Mengoptimalkan pembuatan paket installer DMG dan berkas aplikasi mandiri untuk Mac berbasis chip Apple Silicon (M1/M2/M3/M4) tanpa ketergantungan unduhan jaringan eksternal yang lambat, serta mendukung pemasangan langsung ke sistem.",
+              "en": "Apple Silicon Mac Installer & Compilation Optimization: Streamlined DMG installer and standalone application packaging for Apple Silicon Macs (M1/M2/M3/M4) without slow external network dependencies, enabling fast local packaging and seamless system installation."
+          }
+      ],
+      "version": "1.4.2"
   },
   {
     "version": "1.4.1",
