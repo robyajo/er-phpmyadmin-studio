@@ -35,10 +35,16 @@ test.beforeAll(async () => {
   });
 });
 
+test.afterAll(async () => {
+  if (electronApp) {
+    await electronApp.close();
+  }
+});
+
 test("renders the first page", async () => {
   const page: Page = await electronApp.firstWindow();
 
   const title = await page.waitForSelector("h1");
   const text = await title.textContent();
-  expect(text).toBe("electron-shadcn");
+  expect(text?.trim()).toMatch(/Sign in to Workspace|Masuk ke Workspace|xphpMyAdmin/i);
 });
