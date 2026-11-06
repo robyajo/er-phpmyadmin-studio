@@ -30,9 +30,13 @@ if (process.platform === "linux") {
     const homeDir = process.env.HOME || "";
     const desktopEntryDir = path.join(homeDir, ".local/share/applications");
     const desktopEntryFile = path.join(desktopEntryDir, "xphpmyadmin-desktop.desktop");
-    const iconFullPath = path.resolve(process.cwd(), "assets/icon.png");
-    if (fs.existsSync(desktopEntryDir) && fs.existsSync(iconFullPath) && !fs.existsSync(desktopEntryFile)) {
-      const entryContent = `[Desktop Entry]\nName=xphpMyAdmin Desktop\nComment=xphpMyAdmin Desktop Development\nExec=/usr/bin/true\nIcon=${iconFullPath}\nTerminal=false\nType=Application\nStartupWMClass=xphpmyadmin-desktop\nCategories=Development;Database;\n`;
+    const iconFullPath = path.join(homeDir, ".local/share/pixmaps/xphpmyadmin-desktop.png");
+    const execPath = path.join(homeDir, ".local/bin/xphpmyadmin-desktop");
+    const existingContent = fs.existsSync(desktopEntryFile)
+      ? fs.readFileSync(desktopEntryFile, "utf-8")
+      : "";
+    if (existingContent.includes("Exec=/usr/bin/true") || !fs.existsSync(desktopEntryFile)) {
+      const entryContent = `[Desktop Entry]\nName=xphpMyAdmin Desktop\nComment=Modern database manager with SSH tunneling for MySQL & MariaDB\nExec=${execPath} %U\nIcon=${iconFullPath}\nTerminal=false\nType=Application\nStartupNotify=true\nStartupWMClass=xphpmyadmin-desktop\nCategories=Development;Database;Utility;\nMimeType=x-scheme-handler/xphpmyadmin;\n`;
       fs.writeFileSync(desktopEntryFile, entryContent, "utf-8");
     }
   } catch {
